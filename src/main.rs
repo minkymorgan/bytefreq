@@ -4,7 +4,7 @@ use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::collections::HashMap;
 
-mod parsers;
+mod parser;
 mod utils;
 
 fn main() {
@@ -35,14 +35,14 @@ fn main() {
 
         match format {
             utils::DataFormat::CSV | utils::DataFormat::TSV | utils::DataFormat::PSV => {
-                let fields = parsers::parse_delimited_line(&line, &delimiter);
+                let fields = parser::parse_delimited_line(&line, &delimiter);
 
                 for field in fields {
                     *frequency_map.entry(field).or_insert(0) += 1;
                 }
             }
             utils::DataFormat::JSON => {
-                let json_data = parsers::parse_json_line(&line);
+                let json_data = parser::parse_json_line(&line);
                 for (key, value) in json_data {
                     *frequency_map.entry(key).or_insert(0) += value;
                 }
