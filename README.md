@@ -46,8 +46,8 @@ Run tests:
 cargo test
 ```
 
-
-
+this directories structure:
+```
 bytefreq-rs/
 │
 ├── src/
@@ -84,3 +84,4 @@ bytefreq-rs/
 │   ├── other_files/
 │   │   └── test.txt
 │   └── integration_tests
+```
