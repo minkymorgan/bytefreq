@@ -48,4 +48,39 @@ cargo test
 
 
 
-
+bytefreq-rs/
+│
+├── src/
+│   ├── main.rs
+│   ├── parser/
+│   │   ├── mod.rs
+│   │   ├── json_parser/
+│   │   │   ├── mod.rs
+│   │   │   ├── json_reader.rs
+│   │   │   └── json_extractor.rs
+│   │   └── delimited_parser/
+│   │       ├── mod.rs
+│   │       ├── delimited_reader.rs
+│   │       └── field_extractor.rs
+│   ├── output/
+│   │   ├── mod.rs
+│   │   └── report.rs
+│   ├── utils/
+│   │   ├── mod.rs
+│   │   └── glob_utils.rs
+│   └── tests/
+│       ├── json_tests.rs
+│       ├── delimited_tests.rs
+│       └── glob_tests.rs
+│
+├── tests/
+│   ├── json_files/
+│   │   ├── test1.json
+│   │   └── test2.json
+│   ├── delimited_files/
+│   │   ├── test1.csv
+│   │   ├── test2.tsv
+│   │   └── test3.psv
+│   ├── other_files/
+│   │   └── test.txt
+│   └── integration_tests
