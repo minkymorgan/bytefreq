@@ -80,11 +80,16 @@ fn main() {
         .enumerate()
         .inspect(|(i, line)| {
 
-	    if *i == 0 {
-		header = Some(line.split(delimiter).map(String::from).collect());
-		return;
-	    }
-
+	    if *i == 0{
+                header = Some(
+                    line.split(delimiter)
+                        .map(|s| s.trim().replace(" ", "_"))
+                        .map(String::from)
+                        .collect(),
+                );
+                return;
+            }
+ 
 	    let fields = line.split(delimiter).map(String::from).collect::<Vec<String>>();
 
             if frequency_maps.is_none() {
