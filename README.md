@@ -15,6 +15,7 @@ It only works for pipe delimited files, and later it may be updated to expand th
   - PSV (pipe-separated values)
 - it is limited to data recived on STDIN 
 - Report generation
+- User options for high and low grain reporting
 
 ## Getting Started
 ### Prerequisites
@@ -39,7 +40,7 @@ Running
 
 Run ByteFreq-RS on a specific file or set of files:
 ```
-cargo run --release -- -i "/path/to/input/files/*"
+time cat ./testdata/BasicCompanyData-2021-02-01-part6_6.csv.pip | ./target/release/bytefreq-rs --grain "H" >out/test.output.txt 
 ```
 
 Run tests:
