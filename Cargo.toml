@@ -1,0 +1,28 @@
+[package]
+name = "bytefreq-rs"
+version = "0.1.0"
+authors = ["minkymorgan@gmail.com"]
+edition = "2018"
+
+[dependencies]
+serde = "1.0"
+serde_json = "1.0"
+csv = "1.1"
+glob = "0.3"
+rand = "0.8.4"
+chrono = { version = "0.4.19", features = ["serde"] }
+
+[dependencies.globset]
+version = "0.4"
+features = ["serde"]
+
+[dependencies.rayon]
+version = "1.5"
+
+[dependencies.walkdir]
+version = "2.3"
+
+[[bin]]
+name = "bytefreq-rs"
+path = "src/main.rs"
+
