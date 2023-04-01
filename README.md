@@ -1,16 +1,18 @@
 # bytefreq-rs
 
-bytefreq-rs is a modern, ultra-fast implementation of the ByteFreq tool, built in Rust. It is designed to process very large datasets efficiently and provide byte frequency statistics for various file formats, including CSV, TSV, PSV, JSON, and more.
+bytefreq-rs is a modern, ultra-fast implementation of the ByteFreq data profiling tool, built in Rust. 
+
+This is the first MVP to get the work started. It's a little limited, but works, and fast.
+
+It is designed to process very large pipe delimited  datasets efficiently and provide mask based data profiling statistics.
+It only works for pipe delimited files, and later it may be updated to expand this. .
 
 ## Features
 
-- Process large files (up to 4TB) quickly and efficiently
-- Support for various file formats:
-  - JSON, with deeply nested records
-  - CSV (comma-separated values)
-  - TSV (tab-separated values)
+- Process large files quickly and efficiently
+- Support for tabular file formats:
   - PSV (pipe-separated values)
-- Ability to read multiple files using file globs
+- it is limited to data recived on STDIN 
 - Report generation with byte frequency statistics
 - Dotted notation for nested JSON data paths
 
@@ -44,44 +46,4 @@ cargo run --release -- -i "/path/to/input/files/*"
 Run tests:
 ```
 cargo test
-```
-
-this directories structure:
-```
-bytefreq-rs/
-│
-├── src/
-│   ├── main.rs
-│   ├── parser/
-│   │   ├── mod.rs
-│   │   ├── json_parser/
-│   │   │   ├── mod.rs
-│   │   │   ├── json_reader.rs
-│   │   │   └── json_extractor.rs
-│   │   └── delimited_parser/
-│   │       ├── mod.rs
-│   │       ├── delimited_reader.rs
-│   │       └── field_extractor.rs
-│   ├── output/
-│   │   ├── mod.rs
-│   │   └── report.rs
-│   ├── utils/
-│   │   ├── mod.rs
-│   │   └── glob_utils.rs
-│   └── tests/
-│       ├── json_tests.rs
-│       ├── delimited_tests.rs
-│       └── glob_tests.rs
-│
-├── tests/
-│   ├── json_files/
-│   │   ├── test1.json
-│   │   └── test2.json
-│   ├── delimited_files/
-│   │   ├── test1.csv
-│   │   ├── test2.tsv
-│   │   └── test3.psv
-│   ├── other_files/
-│   │   └── test.txt
-│   └── integration_tests
 ```
