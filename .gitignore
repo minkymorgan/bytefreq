@@ -1,0 +1,6 @@
+testdata/BasicCompanyData-2021-02-01-part6_6.csv.pip
+Cargo.lock
+mvp/
+target/CACHEDIR.TAG
+target/
+out/
