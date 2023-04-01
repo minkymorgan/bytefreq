@@ -54,11 +54,19 @@ fn main() {
                 .takes_value(true)
                 .default_value("L"),
         )
+        .arg(
+            Arg::new("delimiter")
+                .short('d')
+                .long("delimiter")
+                .value_name("DELIMITER")
+                .help("Sets the delimiter used to separate fields in input data")
+                .takes_value(true)
+                .default_value("|"),
+        )
         .get_matches();
 
     let grain = matches.value_of("grain").unwrap();
-
-
+    let delimiter = matches.value_of("delimiter").unwrap();
 
 
     let stdin = io::stdin();
@@ -71,12 +79,13 @@ fn main() {
         .filter_map(Result::ok)
         .enumerate()
         .inspect(|(i, line)| {
-            if *i == 0 {
-                header = Some(line.split('|').map(String::from).collect());
-                return;
-            }
 
-            let fields = line.split('|').map(String::from).collect::<Vec<String>>();
+	    if *i == 0 {
+		header = Some(line.split(delimiter).map(String::from).collect());
+		return;
+	    }
+
+	    let fields = line.split(delimiter).map(String::from).collect::<Vec<String>>();
 
             if frequency_maps.is_none() {
                 frequency_maps = Some(vec![HashMap::new(); fields.len()]);
