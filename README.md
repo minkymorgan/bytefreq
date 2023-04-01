@@ -40,7 +40,7 @@ Running
 
 Run ByteFreq-RS on a specific file or set of files:
 ```
-time cat ./testdata/BasicCompanyData-2021-02-01-part6_6.csv.pip | ./target/release/bytefreq-rs --grain "H" >out/test.output.txt 
+time cat BasicCompanyData-2021-02-01-part6_6_100k.pip | ./target/release/bytefreq-rs --grain "H" >out/test.output.txt 
 ```
 
 Run tests:
