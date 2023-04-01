@@ -1,11 +1,12 @@
 # bytefreq-rs
 
-bytefreq-rs is a modern, ultra-fast implementation of the ByteFreq data profiling tool, built in Rust. 
+bytefreq-rs is POC for a rust implementation of the ByteFreq data profiling tool, built in Rust. 
+The original code is found here, if you want full features. https://github.com/minkymorgan/bytefreq
 
-This is the first MVP to get the work started. It's a little limited, but works, and fast.
+This initital implementation has limited user options, but works very fast, about 4 times faster than using MAWK with the full bytefreq.awk
 
 It is designed to process very large pipe delimited  datasets efficiently and provide mask based data profiling statistics.
-It only works for pipe delimited files, and later it may be updated to expand this. .
+It only works for pipe delimited files, and later it may be updated to expand this.
 
 ## Features
 
@@ -13,11 +14,9 @@ It only works for pipe delimited files, and later it may be updated to expand th
 - Support for tabular file formats:
   - PSV (pipe-separated values)
 - it is limited to data recived on STDIN 
-- Report generation with byte frequency statistics
-- Dotted notation for nested JSON data paths
+- Report generation
 
 ## Getting Started
-
 ### Prerequisites
 
 - [Rust](https://www.rust-lang.org/tools/install): Install Rust and Cargo to build and run the project.
