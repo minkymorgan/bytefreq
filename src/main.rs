@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::io::{self, BufRead};
 use rand::prelude::*;
 use chrono::{Local, Datelike, Timelike};
+use clap::{App, Arg};
 
 fn high_grain_mask(value: &str) -> String {
     value
@@ -26,11 +27,40 @@ fn low_grain_mask(value: &str) -> String {
             last_char = Some(c);
         }
     }
-
     output
 }
 
+fn mask_value(value: &str, grain: &str) -> String {
+    match grain {
+        "H" => high_grain_mask(value),
+        "L" => low_grain_mask(value),
+        _ => low_grain_mask(value)
+    }
+}
+
+
 fn main() {
+
+    let matches = App::new("Bytefreq Data Profiler")
+        .version("1.0")
+        .author("Your Name <minkymorganl@gmail.com>")
+        .help("Mask based commandline data profiler")
+        .arg(
+            Arg::new("grain")
+                .short('g')
+                .long("grain")
+                .value_name("GRAIN")
+                .help("Sets the grain type for masking ('H' for highgrain, 'L' for lowgrain)")
+                .takes_value(true)
+                .default_value("L"),
+        )
+        .get_matches();
+
+    let grain = matches.value_of("grain").unwrap();
+
+
+
+
     let stdin = io::stdin();
     let mut frequency_maps: Option<Vec<HashMap<String, usize>>> = None;
     let mut example_maps: Option<Vec<HashMap<String, String>>> = None;
@@ -58,7 +88,7 @@ fn main() {
             let mut rng = thread_rng();
 
             for (idx, field) in fields.iter().enumerate() {
-                let masked_value = low_grain_mask(field);
+                let masked_value = mask_value(field, grain);
                 let count = frequency_maps[idx].entry(masked_value.clone()).or_insert(0);
                 *count += 1;
 
