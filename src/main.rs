@@ -136,13 +136,16 @@ fn main() {
     let matches = App::new("Bytefreq Data Profiler")
         .version("1.0")
         .author("Andrew Morgan <minkymorganl@gmail.com>")
-        .help("Mask based commandline data profiler")
+        .about("A command-line tool to generate data profiling reports based on various masking strategies.")
         .arg(
             Arg::new("grain")
 	        .short('g')
   	        .long("grain")
 	        .value_name("GRAIN")
-	        .help("Sets the grain type for masking ('H' for highgrain, 'L' for lowgrain, 'U' for Unicode)")
+                .help("Sets the grain type for masking:\n\
+                   'H' - High grain (A for uppercase letters, a for lowercase letters, 9 for digits)\n\
+                   'L' - Low grain (repeated pattern characters will be compressed to one)\n\
+                   'U' - Unicode (uses Unicode general categories for masking)")
 	        .takes_value(true)
 	        .default_value("U"),
         )
@@ -151,7 +154,8 @@ fn main() {
                 .short('d')
                 .long("delimiter")
                 .value_name("DELIMITER")
-                .help("Sets the delimiter used to separate fields in input data")
+                .help("Sets the delimiter used to separate fields in input tabular data.\n\
+                   Default: '|' (pipe character)")
                 .takes_value(true)
                 .default_value("|"),
         )
@@ -160,7 +164,9 @@ fn main() {
                 .short('f')
                 .long("format")
                 .value_name("FORMAT")
-                .help("Sets the format of the input data ('json' for JSON data, 'tabular' for tabular data)")
+                .help("Sets the format of the input data:\n\
+                   'json' - JSON data (each line should contain a JSON object)\n\
+                   'tabular' - Tabular data (first line should be the header)")
                 .takes_value(true)
                 .default_value("tabular"),
         )
