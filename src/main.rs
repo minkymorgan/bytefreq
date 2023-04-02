@@ -69,8 +69,8 @@ fn mask_value(value: &str, grain: &str) -> String {
     match grain {
         "H" => high_grain_mask(value),
         "L" => low_grain_mask(value),
+        "LU" => low_grain_mask(&value.chars().map(|c| get_generalized_char(c)).collect::<String>()),
         _u => value.chars().map(|c| get_generalized_char(c)).collect(),
-        //_ => value.chars().map(|c| get_generalized_char(c)).collect(),
     }
 }
 
@@ -135,7 +135,7 @@ fn main() {
 
     let matches = App::new("Bytefreq Data Profiler")
         .version("1.0")
-        .author("Andrew Morgan <minkymorgan@gmail.com>\nhttps://www.linkedin.com/in/andrew-morgan-8590b22/")
+        .author("Andrew Morgan <minkymorgan@gmail.com>\nhttps://www.linkedin.com/in/andrew-morgan-8590b22/\n")
         .about("A command-line tool to generate data profiling reports based on various masking strategies.")
         .arg(
             Arg::new("grain")
@@ -145,9 +145,10 @@ fn main() {
                 .help("Sets the grain type for masking:\n\
                    'H' - High grain (A for uppercase letters, a for lowercase letters, 9 for digits)\n\
                    'L' - Low grain (repeated pattern characters will be compressed to one)\n\
-                   'U' - Unicode (uses Unicode general categories for masking)")
+                   'U' - Unicode (uses Unicode general categories for masking\n\
+                   'LU'- Low grain Unicode (repeated pattern classes compressed to one\n)")
 	        .takes_value(true)
-	        .default_value("U"),
+	        .default_value("LU"),
         )
         .arg(
             Arg::new("delimiter")
