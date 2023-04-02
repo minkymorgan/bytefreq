@@ -58,7 +58,11 @@ fn low_grain_mask(value: &str) -> String {
             last_char = Some(c);
         }
     }
-    output
+        if output.is_empty() {
+        "_".to_string()
+    } else {
+        output
+    }
 }
 
 fn mask_value(value: &str, grain: &str) -> String {
@@ -173,46 +177,53 @@ fn main() {
     let mut example_maps: Vec<HashMap<String, String>> = Vec::new();
     let mut column_names: HashMap<String, usize> = HashMap::new();
     let mut record_count: usize = 0;
+    let mut input_processed = false;
 
     for line in stdin.lock().lines().filter_map(Result::ok) {
-        if format == "json" {
-            process_json_line(&line, &mut frequency_maps, &mut example_maps, grain, &mut column_names);
-        } else {
-            if record_count == 0 {
-                // Process header for tabular data
-                for (idx, name) in line
-                    .split(delimiter)
-                    .map(|s| s.trim().replace(" ", "_"))
-                    .enumerate()
-                {
-                    column_names.insert(name.to_string(), idx);
-                }
+        if !line.is_empty() {
+            input_processed = true;      
+            if format == "json" {
+                process_json_line(&line, &mut frequency_maps, &mut example_maps, grain, &mut column_names);
             } else {
-                // Process tabular data
-                let fields = line
-                    .split(delimiter)
-                    .enumerate()
-                    .map(|(i, s)| (column_names.iter().find(|(_, &v)| v == i).unwrap().0.clone(), s))
-                    .collect::<Vec<(String, &str)>>();
+                if record_count == 0 {
+                    // Process header for tabular data
+                    for (idx, name) in line
+                        .split(delimiter)
+                        .map(|s| s.trim().replace(" ", "_"))
+                        .enumerate()
+                    {
+                        column_names.insert(name.to_string(), idx);
+                        frequency_maps.push(HashMap::new());
+                        example_maps.push(HashMap::new());
+                    }
+                } else {
+                    // Process tabular data
+                    if !column_names.is_empty() { // <-- check if column_names is not empty
+                        let fields = line
+                            .split(delimiter)
+                            .enumerate()
+                            .map(|(i, s)| (column_names.iter().find(|(_, &v)| v == i).unwrap().0.clone(), s))
+                            .collect::<Vec<(String, &str)>>();
 
-                for (name, value) in fields {
-                    let masked_value = mask_value(value, grain);
-                    let idx = column_names[&name];
+                        for (name, value) in fields {
+                            let masked_value = mask_value(value, grain);
+                            let idx = column_names[&name];
+    
+                            let count = frequency_maps[idx].entry(masked_value.clone()).or_insert(0);
+                            *count += 1;
 
-                    let count = frequency_maps[idx].entry(masked_value.clone()).or_insert(0);
-                    *count += 1;
-
-                    // Reservoir sampling
-                    let mut rng = thread_rng();
-                    if rng.gen::<f64>() < 1.0 / (*count as f64) {
-                        example_maps[idx].insert(masked_value.clone(), value.to_string());
+                            // Reservoir sampling
+                            let mut rng = thread_rng();
+                            if rng.gen::<f64>() < 1.0 / (*count as f64) {
+                                example_maps[idx].insert(masked_value.clone(), value.to_string());
+                            }
+                        }
                     }
                 }
             }
+            record_count += 1;
         }
-        record_count += 1;
     }
-
 
     let now = Local::now();
     let now_string = now.format("%Y%m%d %H:%M:%S").to_string();
