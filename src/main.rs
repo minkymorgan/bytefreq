@@ -135,7 +135,7 @@ fn main() {
 
     let matches = App::new("Bytefreq Data Profiler")
         .version("1.0")
-        .author("Andrew Morgan <minkymorganl@gmail.com>")
+        .author("Andrew Morgan <minkymorgan@gmail.com>\nhttps://www.linkedin.com/in/andrew-morgan-8590b22/")
         .about("A command-line tool to generate data profiling reports based on various masking strategies.")
         .arg(
             Arg::new("grain")
