@@ -74,43 +74,50 @@ fn mask_value(value: &str, grain: &str) -> String {
     }
 }
 
-fn process_json_map(
-    map: &Map<String, Value>,
+fn process_json_value(
+    value: &Value,
     frequency_maps: &mut Vec<HashMap<String, usize>>,
     example_maps: &mut Vec<HashMap<String, String>>,
     grain: &str,
     prefix: String,
     column_names: &mut HashMap<String, usize>,
 ) {
-    for (key, value) in map.iter() {
-        let full_key = if prefix.is_empty() {
-            key.to_string()
-        } else {
-            format!("{}.{}", prefix, key)
-        };
+    match value {
+        Value::Object(map) => {
+            for (key, value) in map.iter() {
+                let full_key = if prefix.is_empty() {
+                    key.to_string()
+                } else {
+                    format!("{}.{}", prefix, key)
+                };
+                process_json_value(value, frequency_maps, example_maps, grain, full_key, column_names);
+            }
+        }
+        Value::Array(values) => {
+            for (idx, value) in values.iter().enumerate() {
+                let full_key = format!("{}[{}]", prefix, idx);
+                process_json_value(value, frequency_maps, example_maps, grain, full_key, column_names);
+            }
+        }
+        _ => {
+            let value_str = value.to_string();
+            let masked_value = mask_value(&value_str, grain);
+            let idx = column_names
+                .entry(prefix.clone())
+                .or_insert_with(|| {
+                    let new_idx = frequency_maps.len();
+                    frequency_maps.push(HashMap::new());
+                    example_maps.push(HashMap::new());
+                    new_idx
+                });
 
-        match value {
-            Value::Object(obj) => process_json_map(obj, frequency_maps, example_maps, grain, full_key.clone(), column_names),
-            _ => {
-                let value_str = value.to_string();
-                let masked_value = mask_value(&value_str, grain);
-                let idx = column_names
-                    .entry(full_key.clone())
-                    .or_insert_with(|| {
-                        let new_idx = frequency_maps.len();
-                        frequency_maps.push(HashMap::new());
-                        example_maps.push(HashMap::new());
-                        new_idx
-                    });
+            let count = frequency_maps[*idx].entry(masked_value.clone()).or_insert(0);
+            *count += 1;
 
-                let count = frequency_maps[*idx].entry(masked_value.clone()).or_insert(0);
-                *count += 1;
-
-                // Reservoir sampling
-                let mut rng = thread_rng();
-                if rng.gen::<f64>() < 1.0 / (*count as f64) {
-                    example_maps[*idx].insert(masked_value.clone(), value_str);
-                }
+            // Reservoir sampling
+            let mut rng = thread_rng();
+            if rng.gen::<f64>() < 1.0 / (*count as f64) {
+                example_maps[*idx].insert(masked_value.clone(), value_str);
             }
         }
     }
@@ -124,12 +131,9 @@ fn process_json_line(
     column_names: &mut HashMap<String, usize>,
 ) {
     if let Ok(json_value) = serde_json::from_str::<Value>(line) {
-        if let Value::Object(json_map) = json_value {
-            process_json_map(&json_map, frequency_maps, example_maps, grain, String::new(), column_names);
-        }
+        process_json_value(&json_value, frequency_maps, example_maps, grain, String::new(), column_names);
     }
 }
-
 
 fn main() {
 
