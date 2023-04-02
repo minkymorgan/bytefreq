@@ -1,5 +1,5 @@
 # bytefreq-rs 
-##Mask Based Data Profiling for Data Quality
+## Mask Based Data Profiling for Data Quality
 
 bytefreq-rs is POC for a refactor of the original ByteFreq data profiling tool. 
 The original code is found here, if you want full features. https://github.com/minkymorgan/bytefreq
