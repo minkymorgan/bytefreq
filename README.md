@@ -27,7 +27,6 @@ $ cargo build --release
 $ ./target/release/bytefreq-rs [OPTIONS]
 
 $ ./target/release/bytefreq-rs --help
-```
 
 Options:
 --------
