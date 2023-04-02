@@ -1,7 +1,7 @@
 # bytefreq-rs 
 ## Mask Based Data Profiling for Data Quality
 
-bytefreq-rs is POC for a refactor of the original ByteFreq data profiling tool. 
+bytefreq-rs is a refactor of the original ByteFreq data profiling tool written in awk. 
 The original code is found here, if you want full features. https://github.com/minkymorgan/bytefreq
 
 This implementation written in Rust and is very fast.
@@ -21,11 +21,13 @@ Usage:
 
 To use bytefreq-rs, compile the Rust program and execute it with the desired options:
 
+```
 $ cargo build --release
+
 $ ./target/release/bytefreq-rs [OPTIONS]
 
-```
 $ ./target/release/bytefreq-rs --help
+```
 
 Options:
 --------
