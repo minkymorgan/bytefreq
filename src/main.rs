@@ -13,6 +13,7 @@ fn get_generalized_char(c: char) -> char {
         '0'..='9' => '9',
         'a'..='z' => 'a',
         'A'..='Z' => 'A',
+        c if c.is_ascii_punctuation() && (c == '"' || c == '-' || c == '.' || c == ',') => c,
         c if c.is_whitespace() => ' ',
         _ => {
             let cat = Category::of(c);
