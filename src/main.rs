@@ -1,10 +1,39 @@
 use std::collections::HashMap;
 use std::io::{self, BufRead};
 use rand::prelude::*;
-use chrono::{Local, Datelike, Timelike};
+use chrono::{Local};
 use clap::{App, Arg};
 use serde_json::{Value, Map};
-use std::iter::repeat_with;
+use unic::ucd::GeneralCategory as Category;
+
+
+// this is a highgrain Mask that works for unicode data!
+fn get_generalized_char(c: char) -> char {
+    match c {
+        '0'..='9' => '9',
+        'a'..='z' => 'a',
+        'A'..='Z' => 'A',
+        c if c.is_whitespace() => ' ',
+        _ => {
+            let cat = Category::of(c);
+
+            match cat {
+                Category::UppercaseLetter => 'A',
+                Category::LowercaseLetter => 'a',
+                Category::TitlecaseLetter => 'A',
+                Category::OtherLetter => 'a',
+                Category::ModifierLetter => 'a',
+                Category::DecimalNumber => '9',
+                Category::LetterNumber => '9',
+                Category::OtherNumber => '9',
+                Category::SpaceSeparator => ' ',
+                Category::LineSeparator => ' ',
+                Category::ParagraphSeparator => ' ',
+                _ => '_',
+            }
+        }
+    }
+}
 
 fn high_grain_mask(value: &str) -> String {
     value
@@ -36,7 +65,8 @@ fn mask_value(value: &str, grain: &str) -> String {
     match grain {
         "H" => high_grain_mask(value),
         "L" => low_grain_mask(value),
-        _ => low_grain_mask(value)
+        _u => value.chars().map(|c| get_generalized_char(c)).collect(),
+        //_ => value.chars().map(|c| get_generalized_char(c)).collect(),
     }
 }
 
@@ -105,12 +135,12 @@ fn main() {
         .help("Mask based commandline data profiler")
         .arg(
             Arg::new("grain")
-                .short('g')
-                .long("grain")
-                .value_name("GRAIN")
-                .help("Sets the grain type for masking ('H' for highgrain, 'L' for lowgrain)")
-                .takes_value(true)
-                .default_value("L"),
+	        .short('g')
+  	        .long("grain")
+	        .value_name("GRAIN")
+	        .help("Sets the grain type for masking ('H' for highgrain, 'L' for lowgrain, 'U' for Unicode)")
+	        .takes_value(true)
+	        .default_value("U"),
         )
         .arg(
             Arg::new("delimiter")
