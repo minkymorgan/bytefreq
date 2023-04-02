@@ -69,47 +69,47 @@ $ cat testdata/test3.tsv | ./target/release/bytefreq-rs -d "\t" -g "H"
 
 ```
 cat testdata/source.geojson* | ./target/release/bytefreq-rs --format "json" -g "LU" |grep -v hash | column -t -s $'\t'
-Data Profiling Report: 20230403 00:36:03
+Data Profiling Report: 20230403 00:55:13
 Examined rows: 190493
 column                                    count     pattern      example                         
---------------------------------          --------  --------     --------------------------
-col_00012_type                            190493    _Aa_         "Feature"                       
-col_00000_geometry.coordinates[0]         164816    9_9          129.813483                      
-col_00000_geometry.coordinates[0]         25677     _9_9         -6.5248824                      
-col_00007_properties.number               161668    _9_9_        "1625-1"                        
-col_00007_properties.number               24538     _9_          "34"                            
-col_00007_properties.number               2784      _a9_9_       "ﾛ663-1"                        
-col_00007_properties.number               1139      _9A_         "45A"                           
-col_00007_properties.number               177       _9a_9_       "136ｲ-1"                        
-col_00007_properties.number               155       _9a9_9_      "440第5-1"                       
-col_00007_properties.number               17        _a_9_        "又-1"                           
-col_00007_properties.number               12        _a9a9_9_     "ﾛ487第3-1"                      
-col_00007_properties.number               3         _a9a_9_      "又1176ｲ-1"                      
-col_00004_properties.district             190493    _            ""                              
-col_00009_properties.region               190493    _            ""                              
-col_00003_properties.city                 164816    _            ""                              
-col_00003_properties.city                 25398     _Aa_         "Glyvrar"                       
-col_00003_properties.city                 220       _Aa_ Aa_     "Nes, Vágur"                    
-col_00003_properties.city                 59        _Aa Aa_      "Innan Glyvur"                  
-col_00001_geometry.coordinates[1]         190493    9_9          32.838522                       
-col_00006_properties.id                   190493    _            ""                              
-col_00008_properties.postcode             164816    _            ""                              
-col_00008_properties.postcode             25677     _9_          "740"                           
-col_00002_geometry.type                   190493    _Aa_         "Point"                         
-col_00010_properties.street               164816    _a_          "新馬場町"                          
-col_00010_properties.street               19714     _Aa_         "Heiðagøta"                     
-col_00010_properties.street               2612      _Aa Aa_      "Millum Húsa"                   
-col_00010_properties.street               1970      _A Aa_       "Í Húsgarði"                    
-col_00010_properties.street               672       _Aa a Aa_    "Norðuri í Bø"                  
-col_00010_properties.street               387       _Aa Aa a_    "Niels Finsens gøta"            
-col_00010_properties.street               119       _A_A_ Aa a_  "A.C. Evensens gøta"            
-col_00010_properties.street               68        _Aa a Aa a_  "Djóna í Geil gøta"             
-col_00010_properties.street               61        _Aa A_       "Uttan Á"                       
-col_00010_properties.street               27        _A Aa Aa_    "Á Eystaru Hellu"               
-col_00010_properties.street               25        _Aa A Aa_    "Oman Í Fjøru"                  
-col_00010_properties.street               13        _A_ Aa a_    "C. Pløyens gøta"               
-col_00010_properties.street               9         _Aa a a_     "Erlings jals gøta"             
-col_00011_properties.unit                 190493    _            ""                       
+--------------------------------          --------  --------     --------------------------------
+col_00007_properties.number               161668    "9-9"        "375-1"                         
+col_00007_properties.number               24538     "9"          "8"                             
+col_00007_properties.number               2784      "a9-9"       "丙551-1"                        
+col_00007_properties.number               1139      "9A"         "89C"                           
+col_00007_properties.number               177       "9a-9"       "2334ｲ-1"                       
+col_00007_properties.number               155       "9a9-9"      "17第2-1"                        
+col_00007_properties.number               17        "a-9"        "又又-1"                          
+col_00007_properties.number               12        "a9a9-9"     "ﾛ487第3-1"                      
+col_00007_properties.number               3         "a9a-9"      "又729ｲ-1"                       
+col_00009_properties.region               190493    "            ""                              
+col_00010_properties.street               164816    "a"          "城山町"                           
+col_00010_properties.street               19714     "Aa"         "Skálavegur"                    
+col_00010_properties.street               2612      "Aa Aa"      "Við Svartá"                    
+col_00010_properties.street               1970      "A Aa"       "Á Fløttinum"                   
+col_00010_properties.street               672       "Aa a Aa"    "Norðuri í Sundum"              
+col_00010_properties.street               387       "Aa Aa a"    "Jónas Broncks gøta"            
+col_00010_properties.street               119       "A.A. Aa a"  "R.C. Effersøes gøta"           
+col_00010_properties.street               68        "Aa a Aa a"  "Djóna í Geil gøta"             
+col_00010_properties.street               61        "Aa A"       "Handan Á"                      
+col_00010_properties.street               27        "A Aa Aa"    "Á Eystaru Hellu"               
+col_00010_properties.street               25        "Aa A Aa"    "Oman Á Bakka"                  
+col_00010_properties.street               13        "A. Aa a"    "C. Pløyens gøta"               
+col_00010_properties.street               9         "Aa a a"     "Suðuri í lægd"                 
+col_00011_properties.unit                 190493    "            ""                              
+col_00012_type                            190493    "Aa"         "Feature"                       
+col_00001_geometry.coordinates[1]         190493    9.9          62.0171126                      
+col_00002_geometry.type                   190493    "Aa"         "Point"                         
+col_00000_geometry.coordinates[0]         164816    9.9          129.826488                      
+col_00000_geometry.coordinates[0]         25677     -9.9         -6.724438                       
+col_00003_properties.city                 164816    "            ""                              
+col_00003_properties.city                 25398     "Aa"         "Hósvík"                        
+col_00003_properties.city                 220       "Aa, Aa"     "Nes, Vágur"                    
+col_00003_properties.city                 59        "Aa Aa"      "Undir Gøtueiði"                
+col_00004_properties.district             190493    "            ""                              
+col_00006_properties.id                   190493    "            ""                              
+col_00008_properties.postcode             164816    "            ""                              
+col_00008_properties.postcode             25677     "9"          "730"                           
 ```
 
 
