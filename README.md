@@ -1,51 +1,74 @@
 # bytefreq-rs
 
-bytefreq-rs is POC for a refactor of the original ByteFreq data profiling tool. The original awk code is fast, but it needs modernisation. 
+bytefreq-rs is POC for a refactor of the original ByteFreq data profiling tool. 
 The original code is found here, if you want full features. https://github.com/minkymorgan/bytefreq
 
-This refactor is into Rust and so far is very fast, about 4 times faster than using MAWK with the full bytefreq.awk
-
-It is designed to process very large delimited datasets efficiently and provide mask based data profiling statistics.
+This implementation written in Rust and is very fast.
 
 ## Features
 
-- Process large files quickly and efficiently
-- Support for tabular file formats:
-  - PSV (pipe-separated values) this is the default. 
-  - CSV (simple comma separated values)
-  - TSV (tab delimited values)
-- it is limited to data recived on STDIN 
-- Report generation is configurable, for H high or L low grain reports
+- Supports JSON and tabular data formats
+- High, low, and Unicode grain masking options
+- Frequency distribution of patterns in columns
+- Reservoir sampling for example value generation
 
-I highly suggest you parse csv using a decent parser, and pass clean pipe delimited values in. If there are ragged columns, this will probably error presently.
+I highly suggest you pre-parse complex csv using a decent parser, and pass clean pipe delimited values to this program. 
+(If there are ragged columns, this will probably error presently)
 
-## Getting Started
-### Prerequisites
+Usage:
+------
 
-- [Rust](https://www.rust-lang.org/tools/install): Install Rust and Cargo to build and run the project.
+To use bytefreq-rs, compile the Rust program and execute it with the desired options:
 
-### Building
-
-Clone the repository:
-
-```bash
-git clone https://github.com/yourusername/bytefreq-rs.git
-cd bytefreq-rs
-```
-Build the project
+$ cargo build --release
+$ ./target/release/bytefreq-rs [OPTIONS]
 
 ```
-cargo build --release
-```
+$ ./target/release/bytefreq-rs --help
 
-Running
+Options:
+--------
 
-Run ByteFreq-RS on a specific file or set of files:
-```
-time cat BasicCompanyData-2021-02-01-part6_6_100k.pip | ./target/release/bytefreq-rs --grain "H" >out/test.output.txt 
-```
+-g, --grain GRAIN
+    Sets the grain type for masking:
+    - 'H' for high grain
+    - 'L' for low grain
+    - 'U' for Unicode (default)
 
-Run tests:
+-d, --delimiter DELIMITER
+    Sets the delimiter used to separate fields in input data (default: '|')
+
+-f, --format FORMAT
+    Sets the format of the input data:
+    - 'json' for JSON data
+    - 'tabular' for tabular data (default)
+
+--help
+    Displays the help message with detailed explanations for each option
+
 ```
-cargo test
+Examples:
+---------
+
+1. Process a tabular data file with default options (Unicode grain, '|' delimiter):
 ```
+$ cat testdata/test1.pip | ./target/release/bytefreq-rs
+```
+2. Process a JSON data file with low grain masking:
+```
+$ cat testdata/test2.json | ./target/release/bytefreq-rs -f "json" -g "L"
+```
+3. Process a tabular data file with a custom delimiter and high grain masking:
+```
+$ cat testdata/test3.tsv | ./target/release/bytefreq-rs -d "\t" -g "H"
+```
+4. Display the help message:
+```
+$ ./target/release/bytefreq-rs --help
+```
+License:
+--------
+
+Bytefreq-rs is released under the GNU General Public License v3.0. 
+See the LICENSE file for more information.
+
