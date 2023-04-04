@@ -1,13 +1,13 @@
 use std::collections::HashMap;
-use std::io::{self, BufRead};
-use std::io::Read;
+use std::io::{self, BufRead, Read};
+//use std::io::{self, BufRead};
+
 use rand::prelude::*;
 use chrono::{Local};
 use clap::{App, Arg};
-use serde_json::{Value, Map};
+use serde_json::{Value};
 use unic::ucd::GeneralCategory as Category;
 use unicode_names2; 
-use std::borrow::Cow;
 
 // this is a highgrain Mask that works for unicode data!
 fn get_generalized_char(c: char) -> char {
@@ -176,17 +176,102 @@ fn init_control_character_descriptions() -> HashMap<char, &'static str> {
     ref_map
 }
 
+struct LineReader<R: Read> {
+    inner: R,
+    buf: Vec<u8>,
+}
 
-fn character_profiling() {
-let stdin = io::stdin();
+/// <<<<<<
+impl<R: BufRead> LineReader<R> {
+    fn new(inner: R) -> Self {
+        Self { inner, buf: Vec::new() }
+    }
+
+    fn read_line_self(&mut self) -> io::Result<Option<String>> {
+        let mut line = Vec::new();
+        let bytes_read = self.inner.read_until(b'\n', &mut line)?;
+
+        if bytes_read == 0 {
+            if !self.buf.is_empty() {
+                let leftover = String::from_utf8_lossy(&self.buf);
+                let cloned_buf = self.buf.clone(); 
+                self.buf.clear();
+                let cloned_string = String::from_utf8_lossy(&cloned_buf);
+                return Ok(Some(cloned_string.into_owned()));
+            }
+            return Ok(None);
+        }
+
+        if line.last() == Some(&b'\r') {
+            line.pop();
+        }
+
+        self.buf.extend(line.iter());
+
+        let result = String::from_utf8_lossy(&self.buf);
+        let cloned_buf = self.buf.clone();
+        self.buf.clear();
+        let cloned_string = String::from_utf8_lossy(&cloned_buf);
+        Ok(Some(cloned_string.into_owned()))
+    }
+}
+
+impl<R: Read> Read for LineReader<R> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.inner.read(buf)
+    }
+}
+
+impl<R: BufRead> BufRead for LineReader<R> {
+    fn fill_buf(&mut self) -> io::Result<&[u8]> {
+        Ok(&self.buf)
+    }
+
+    fn consume(&mut self, amt: usize) {
+        self.buf.drain(..amt);
+    }
+
+    fn read_line(&mut self, buf: &mut String) -> io::Result<usize> {
+        buf.clear();
+        match self.read_line_self() {
+            Ok(Some(line)) => {
+                buf.push_str(&line);
+                Ok(line.len())
+            }
+            Ok(None) => Ok(0),
+            Err(e) => Err(e),
+        }
+    }
+}
+
+
+fn character_profiling() -> Result<(), std::io::Error> {
+    let stdin = io::stdin();
     let mut frequency_map: HashMap<char, usize> = HashMap::new();
 
-    for line in stdin.lock().lines().filter_map(Result::ok) {
+    //let file_reader = BufRead::new(stdin.lock());
+    //old// let mut reader = LineReader::new(stdin.lock());
+    let file_reader: Box<dyn BufRead> = Box::new(stdin.lock()); 
+        
+    let mut reader = LineReader::new(file_reader);
+
+    let mut line = String::new();
+    while reader.read_line(&mut line)? > 0 {
+        // here is where I process all the lines in the file
+        //// println!("Line: {}", line.trim_end());
         for c in line.chars() {
             let count = frequency_map.entry(c).or_insert(0);
             *count += 1;
         }
+        line.clear();
     }
+
+    //while let Some(line) = reader.read_line().unwrap() {
+    //    for c in line.chars() {
+    //        let count = frequency_map.entry(c).or_insert(0);
+    //        *count += 1;
+    //    }
+    //}
 
     println!("{:<8}\t{:<8}\t{}\t{}", "char", "count", "description", "name");
     println!("{:-<8}\t{:-<8}\t{:-<15}\t{:-<15}", "", "", "", "");
@@ -198,6 +283,7 @@ let stdin = io::stdin();
         let character_name = unicode_names2::name(c).map_or("UNKNOWN".to_string(), |name| name.to_string());
         println!("{:<8}\t{:<8}\t{}\t{}", c.escape_unicode(), count, c.escape_debug(), character_name);
     }
+    Ok(())
 }
 
 fn main() {
@@ -257,7 +343,11 @@ fn main() {
     let report = matches.value_of("report").unwrap();
 
     if report == "CP" {
-        character_profiling();
+        //character_profiling();
+        match character_profiling() {
+            Ok(_) => println!("Character profiling completed successfully."),
+            Err(e) => eprintln!("Error occurred during character profiling: {}", e),
+        }
     } else {
 
 	    let grain = matches.value_of("grain").unwrap();
