@@ -246,32 +246,22 @@ impl<R: BufRead> BufRead for LineReader<R> {
 
 
 fn character_profiling() -> Result<(), std::io::Error> {
+    let ascii_control_characters = init_control_character_descriptions();
     let stdin = io::stdin();
     let mut frequency_map: HashMap<char, usize> = HashMap::new();
 
-    //let file_reader = BufRead::new(stdin.lock());
-    //old// let mut reader = LineReader::new(stdin.lock());
     let file_reader: Box<dyn BufRead> = Box::new(stdin.lock()); 
         
     let mut reader = LineReader::new(file_reader);
 
     let mut line = String::new();
     while reader.read_line(&mut line)? > 0 {
-        // here is where I process all the lines in the file
-        //// println!("Line: {}", line.trim_end());
         for c in line.chars() {
             let count = frequency_map.entry(c).or_insert(0);
             *count += 1;
         }
         line.clear();
     }
-
-    //while let Some(line) = reader.read_line().unwrap() {
-    //    for c in line.chars() {
-    //        let count = frequency_map.entry(c).or_insert(0);
-    //        *count += 1;
-    //    }
-    //}
 
     println!("{:<8}\t{:<8}\t{}\t{}", "char", "count", "description", "name");
     println!("{:-<8}\t{:-<8}\t{:-<15}\t{:-<15}", "", "", "", "");
@@ -280,7 +270,12 @@ fn character_profiling() -> Result<(), std::io::Error> {
     sorted_chars.sort_unstable_by_key(|&(c, _)| c as u32);
 
     for (c, count) in sorted_chars {
-        let character_name = unicode_names2::name(c).map_or("UNKNOWN".to_string(), |name| name.to_string());
+        let character_name = unicode_names2::name(c).map_or_else(
+             || {
+                 ascii_control_characters.get(&c).map_or("UNKNOWN".to_string(), |desc| desc.to_string())
+             },
+             |name| name.to_string(),
+         );
         println!("{:<8}\t{:<8}\t{}\t{}", c.escape_unicode(), count, c.escape_debug(), character_name);
     }
     Ok(())
@@ -345,7 +340,7 @@ fn main() {
     if report == "CP" {
         //character_profiling();
         match character_profiling() {
-            Ok(_) => println!("Character profiling completed successfully."),
+            Ok(_) => println!("--------END OF REPORT--------"),
             Err(e) => eprintln!("Error occurred during character profiling: {}", e),
         }
     } else {

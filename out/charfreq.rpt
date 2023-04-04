@@ -1,0 +1,109 @@
+char                           count     description      name
+--------                       --------  ---------------  ---------------
+\u{a}                          100000    \n               LF - Line Feed
+\u{d}                          100000    \r               CR - Carriage Return
+\u{20}                         2081338                    SPACE
+\u{21}                         31        !                EXCLAMATION MARK
+\u{22}                         292       \"               QUOTATION MARK
+\u{23}                         16        #                NUMBER SIGN
+\u{24}                         1         $                DOLLAR SIGN
+\u{25}                         7         %                PERCENT SIGN
+\u{26}                         4257      &                AMPERSAND
+\u{27}                         14400     \'               APOSTROPHE
+\u{28}                         25176     (                LEFT PARENTHESIS
+\u{29}                         25171     )                RIGHT PARENTHESIS
+\u{2a}                         14        *                ASTERISK
+\u{2b}                         43        +                PLUS SIGN
+\u{2c}                         49937     ,                COMMA
+\u{2d}                         137587    -                HYPHEN-MINUS
+\u{2e}                         365365    .                FULL STOP
+\u{2f}                         1710750   /                SOLIDUS
+\u{30}                         2472336   0                DIGIT ZERO
+\u{31}                         1445939   1                DIGIT ONE
+\u{32}                         1548942   2                DIGIT TWO
+\u{33}                         582867    3                DIGIT THREE
+\u{34}                         320118    4                DIGIT FOUR
+\u{35}                         326896    5                DIGIT FIVE
+\u{36}                         366735    6                DIGIT SIX
+\u{37}                         337842    7                DIGIT SEVEN
+\u{38}                         321357    8                DIGIT EIGHT
+\u{39}                         453992    9                DIGIT NINE
+\u{3a}                         100113    :                COLON
+\u{3b}                         711       ;                SEMICOLON
+\u{3d}                         2         =                EQUALS SIGN
+\u{3f}                         2         ?                QUESTION MARK
+\u{40}                         156       @                COMMERCIAL AT
+\u{41}                         679291    A                LATIN CAPITAL LETTER A
+\u{42}                         150260    B                LATIN CAPITAL LETTER B
+\u{43}                         413643    C                LATIN CAPITAL LETTER C
+\u{44}                         498038    D                LATIN CAPITAL LETTER D
+\u{45}                         934941    E                LATIN CAPITAL LETTER E
+\u{46}                         152242    F                LATIN CAPITAL LETTER F
+\u{47}                         225704    G                LATIN CAPITAL LETTER G
+\u{48}                         346838    H                LATIN CAPITAL LETTER H
+\u{49}                         546064    I                LATIN CAPITAL LETTER I
+\u{4a}                         18969     J                LATIN CAPITAL LETTER J
+\u{4b}                         193639    K                LATIN CAPITAL LETTER K
+\u{4c}                         682042    L                LATIN CAPITAL LETTER L
+\u{4d}                         289747    M                LATIN CAPITAL LETTER M
+\u{4e}                         680415    N                LATIN CAPITAL LETTER N
+\u{4f}                         658478    O                LATIN CAPITAL LETTER O
+\u{50}                         286880    P                LATIN CAPITAL LETTER P
+\u{51}                         16998     Q                LATIN CAPITAL LETTER Q
+\u{52}                         523140    R                LATIN CAPITAL LETTER R
+\u{53}                         445842    S                LATIN CAPITAL LETTER S
+\u{54}                         748649    T                LATIN CAPITAL LETTER T
+\u{55}                         364017    U                LATIN CAPITAL LETTER U
+\u{56}                         45846     V                LATIN CAPITAL LETTER V
+\u{57}                         105517    W                LATIN CAPITAL LETTER W
+\u{58}                         48893     X                LATIN CAPITAL LETTER X
+\u{59}                         120696    Y                LATIN CAPITAL LETTER Y
+\u{5a}                         7137      Z                LATIN CAPITAL LETTER Z
+\u{5b}                         20        [                LEFT SQUARE BRACKET
+\u{5c}                         5         \\               REVERSE SOLIDUS
+\u{5d}                         20        ]                RIGHT SQUARE BRACKET
+\u{5f}                         25        _                LOW LINE
+\u{60}                         18        `                GRAVE ACCENT
+\u{61}                         899145    a                LATIN SMALL LETTER A
+\u{62}                         152225    b                LATIN SMALL LETTER B
+\u{63}                         414842    c                LATIN SMALL LETTER C
+\u{64}                         625190    d                LATIN SMALL LETTER D
+\u{65}                         1024705   e                LATIN SMALL LETTER E
+\u{66}                         83013     f                LATIN SMALL LETTER F
+\u{67}                         284064    g                LATIN SMALL LETTER G
+\u{68}                         207881    h                LATIN SMALL LETTER H
+\u{69}                         1214678   i                LATIN SMALL LETTER I
+\u{6a}                         1673      j                LATIN SMALL LETTER J
+\u{6b}                         110704    k                LATIN SMALL LETTER K
+\u{6c}                         173072    l                LATIN SMALL LETTER L
+\u{6d}                         475162    m                LATIN SMALL LETTER M
+\u{6e}                         830019    n                LATIN SMALL LETTER N
+\u{6f}                         681426    o                LATIN SMALL LETTER O
+\u{70}                         398741    p                LATIN SMALL LETTER P
+\u{71}                         2845      q                LATIN SMALL LETTER Q
+\u{72}                         376082    r                LATIN SMALL LETTER R
+\u{73}                         623182    s                LATIN SMALL LETTER S
+\u{74}                         1101810   t                LATIN SMALL LETTER T
+\u{75}                         314148    u                LATIN SMALL LETTER U
+\u{76}                         364367    v                LATIN SMALL LETTER V
+\u{77}                         15598     w                LATIN SMALL LETTER W
+\u{78}                         7572      x                LATIN SMALL LETTER X
+\u{79}                         228869    y                LATIN SMALL LETTER Y
+\u{7a}                         3416      z                LATIN SMALL LETTER Z
+\u{7c}                         5400000   |                VERTICAL LINE
+\u{a3}                         5         £                POUND SIGN
+\u{c0}                         2         À                LATIN CAPITAL LETTER A WITH GRAVE
+\u{c2}                         2         Â                LATIN CAPITAL LETTER A WITH CIRCUMFLEX
+\u{c6}                         1         Æ                LATIN CAPITAL LETTER AE
+\u{c7}                         1         Ç                LATIN CAPITAL LETTER C WITH CEDILLA
+\u{c8}                         5         È                LATIN CAPITAL LETTER E WITH GRAVE
+\u{c9}                         36        É                LATIN CAPITAL LETTER E WITH ACUTE
+\u{ca}                         5         Ê                LATIN CAPITAL LETTER E WITH CIRCUMFLEX
+\u{cb}                         1         Ë                LATIN CAPITAL LETTER E WITH DIAERESIS
+\u{d1}                         1         Ñ                LATIN CAPITAL LETTER N WITH TILDE
+\u{d3}                         1         Ó                LATIN CAPITAL LETTER O WITH ACUTE
+\u{d4}                         1         Ô                LATIN CAPITAL LETTER O WITH CIRCUMFLEX
+\u{dc}                         1         Ü                LATIN CAPITAL LETTER U WITH DIAERESIS
+\u{116}                        2         Ė                LATIN CAPITAL LETTER E WITH DOT ABOVE
+\u{2019}                       86        ’                RIGHT SINGLE QUOTATION MARK
+--------END OF REPORT--------
