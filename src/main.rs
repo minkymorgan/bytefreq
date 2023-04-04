@@ -5,7 +5,7 @@ use chrono::{Local};
 use clap::{App, Arg};
 use serde_json::{Value, Map};
 use unic::ucd::GeneralCategory as Category;
-
+use unicode_names2; 
 
 // this is a highgrain Mask that works for unicode data!
 fn get_generalized_char(c: char) -> char {
@@ -154,7 +154,8 @@ fn character_profiling() {
     sorted_chars.sort_unstable_by_key(|&(c, _)| c as u32);
 
     for (c, count) in sorted_chars {
-        let character_name = unicode_names2::name(&c.to_string()).unwrap_or("UNKNOWN");
+        let character_name = unicode_names2::name(c).unwrap_or("UNKNOWN");
+        //let character_name = unicode_names2::name(&c.to_string()).unwrap_or("UNKNOWN");
         println!("{:<8}\t{:<8}\t{:<15}\t{}", c.escape_unicode(), count, c.escape_debug(), character_name);
     }
 }
