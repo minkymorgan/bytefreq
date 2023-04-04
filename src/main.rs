@@ -137,10 +137,50 @@ fn process_json_line(
     }
 }
 
+fn init_control_character_descriptions() -> HashMap<char, &'static str> {
+    let mut ref_map = HashMap::new();
+    ref_map.insert('\u{0000}', "NUL - Null char");
+    ref_map.insert('\u{0001}', "SOH - Start of Heading");
+    ref_map.insert('\u{0002}', "STX - Start of Text");
+    ref_map.insert('\u{0003}', "ETX - End of Text");
+    ref_map.insert('\u{0004}', "EOT - End of Transmission");
+    ref_map.insert('\u{0005}', "ENQ - Enquiry");
+    ref_map.insert('\u{0006}', "ACK - Acknowledgment");
+    ref_map.insert('\u{0007}', "BEL - Bell");
+    ref_map.insert('\u{0008}', "BS - Back Space");
+    ref_map.insert('\u{0009}', "HT - Horizontal Tab");
+    ref_map.insert('\u{000A}', "LF - Line Feed");
+    ref_map.insert('\u{000B}', "VT - Vertical Tab");
+    ref_map.insert('\u{000C}', "FF - Form Feed");
+    ref_map.insert('\u{000D}', "CR - Carriage Return");
+    ref_map.insert('\u{000E}', "SO - Shift Out / X-On");
+    ref_map.insert('\u{000F}', "SI - Shift In / X-Off");
+    ref_map.insert('\u{0010}', "DLE - Data Line Escape");
+    ref_map.insert('\u{0011}', "DC1 - Device Control 1 (oft. XON)");
+    ref_map.insert('\u{0012}', "DC2 - Device Control 2");
+    ref_map.insert('\u{0013}', "DC3 - Device Control 3 (oft. XOFF)");
+    ref_map.insert('\u{0014}', "DC4 - Device Control 4");
+    ref_map.insert('\u{0015}', "NAK - Negative Acknowledgement");
+    ref_map.insert('\u{0016}', "SYN - Synchronous Idle");
+    ref_map.insert('\u{0017}', "ETB - End of Transmit Block");
+    ref_map.insert('\u{0018}', "CAN - Cancel");
+    ref_map.insert('\u{0019}', "EM - End of Medium");
+    ref_map.insert('\u{001A}', "SUB - Substitute");
+    ref_map.insert('\u{001B}', "ESC - Escape");
+    ref_map.insert('\u{001C}', "FS - File Separator");
+    ref_map.insert('\u{001D}', "GS - Group Separator");
+    ref_map.insert('\u{001E}', "RS - Record Separator");
+    ref_map.insert('\u{001F}', "US - Unit Separator");
+
+    ref_map
+}
+
+
 fn character_profiling() {
 
     let stdin = io::stdin();
     let mut frequency_map: HashMap<char, usize> = HashMap::new();
+    let control_character_descriptions = init_control_character_descriptions();
 
     let mut buf = [0; 1];
     let mut stdin_lock = stdin.lock();
@@ -161,7 +201,10 @@ fn character_profiling() {
     sorted_chars.sort_unstable_by_key(|&(c, _)| c as u32);
 
     for (c, count) in sorted_chars {
-        let character_name = unicode_names2::name(c).map_or("UNKNOWN".to_string(), |name| name.to_string());
+        let character_name = match unicode_names2::name(c) {
+             Some(name) if name != "UNKNOWN" => name,
+             _ => control_character_descriptions.get(&c).unwrap_or(&"UNKNOWN"),
+         };
         println!("{:<8}\t{:<8}\t{}\t{}", c.escape_unicode(), count, c.escape_debug(), character_name);
     }
 }
