@@ -147,14 +147,15 @@ fn character_profiling() {
         }
     }
 
-    println!("{:<8}\t{:<8}\t{}", "char", "count", "description");
-    println!("{:-<8}\t{:-<8}\t{:-<15}", "", "", "");
+    println!("{:<8}\t{:<8}\t{:<15}\t{}", "char", "count", "description", "name");
+    println!("{:-<8}\t{:-<8}\t{:-<15}\t{:-<15}", "", "", "", "");
 
     let mut sorted_chars: Vec<(char, usize)> = frequency_map.into_iter().collect();
     sorted_chars.sort_unstable_by_key(|&(c, _)| c as u32);
 
     for (c, count) in sorted_chars {
-        println!("{:<8}\t{:<8}\t{}", c.escape_unicode(), count, c.escape_debug());
+        let character_name = unicode_names2::name(&c.to_string()).unwrap_or("UNKNOWN");
+        println!("{:<8}\t{:<8}\t{:<15}\t{}", c.escape_unicode(), count, c.escape_debug(), character_name);
     }
 }
 
