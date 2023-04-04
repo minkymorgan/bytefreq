@@ -1,11 +1,13 @@
 use std::collections::HashMap;
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, Read};
+//use std::io::{self, BufRead};
+
 use rand::prelude::*;
 use chrono::{Local};
 use clap::{App, Arg};
-use serde_json::{Value, Map};
+use serde_json::{Value};
 use unic::ucd::GeneralCategory as Category;
-
+use unicode_names2; 
 
 // this is a highgrain Mask that works for unicode data!
 fn get_generalized_char(c: char) -> char {
@@ -136,6 +138,154 @@ fn process_json_line(
     }
 }
 
+fn init_control_character_descriptions() -> HashMap<char, &'static str> {
+    let mut ref_map = HashMap::new();
+    ref_map.insert('\u{0000}', "NUL - Null char");
+    ref_map.insert('\u{0001}', "SOH - Start of Heading");
+    ref_map.insert('\u{0002}', "STX - Start of Text");
+    ref_map.insert('\u{0003}', "ETX - End of Text");
+    ref_map.insert('\u{0004}', "EOT - End of Transmission");
+    ref_map.insert('\u{0005}', "ENQ - Enquiry");
+    ref_map.insert('\u{0006}', "ACK - Acknowledgment");
+    ref_map.insert('\u{0007}', "BEL - Bell");
+    ref_map.insert('\u{0008}', "BS - Back Space");
+    ref_map.insert('\u{0009}', "HT - Horizontal Tab");
+    ref_map.insert('\u{000A}', "LF - Line Feed");
+    ref_map.insert('\u{000B}', "VT - Vertical Tab");
+    ref_map.insert('\u{000C}', "FF - Form Feed");
+    ref_map.insert('\u{000D}', "CR - Carriage Return");
+    ref_map.insert('\u{000E}', "SO - Shift Out / X-On");
+    ref_map.insert('\u{000F}', "SI - Shift In / X-Off");
+    ref_map.insert('\u{0010}', "DLE - Data Line Escape");
+    ref_map.insert('\u{0011}', "DC1 - Device Control 1 (oft. XON)");
+    ref_map.insert('\u{0012}', "DC2 - Device Control 2");
+    ref_map.insert('\u{0013}', "DC3 - Device Control 3 (oft. XOFF)");
+    ref_map.insert('\u{0014}', "DC4 - Device Control 4");
+    ref_map.insert('\u{0015}', "NAK - Negative Acknowledgement");
+    ref_map.insert('\u{0016}', "SYN - Synchronous Idle");
+    ref_map.insert('\u{0017}', "ETB - End of Transmit Block");
+    ref_map.insert('\u{0018}', "CAN - Cancel");
+    ref_map.insert('\u{0019}', "EM - End of Medium");
+    ref_map.insert('\u{001A}', "SUB - Substitute");
+    ref_map.insert('\u{001B}', "ESC - Escape");
+    ref_map.insert('\u{001C}', "FS - File Separator");
+    ref_map.insert('\u{001D}', "GS - Group Separator");
+    ref_map.insert('\u{001E}', "RS - Record Separator");
+    ref_map.insert('\u{001F}', "US - Unit Separator");
+
+    ref_map
+}
+
+struct LineReader<R: Read> {
+    inner: R,
+    buf: Vec<u8>,
+}
+
+/// <<<<<<
+impl<R: BufRead> LineReader<R> {
+    fn new(inner: R) -> Self {
+        Self { inner, buf: Vec::new() }
+    }
+
+    fn read_line_self(&mut self) -> io::Result<Option<String>> {
+        let mut line = Vec::new();
+        let bytes_read = self.inner.read_until(b'\n', &mut line)?;
+
+        if bytes_read == 0 {
+            if !self.buf.is_empty() {
+                let leftover = String::from_utf8_lossy(&self.buf);
+                let cloned_buf = self.buf.clone(); 
+                self.buf.clear();
+                let cloned_string = String::from_utf8_lossy(&cloned_buf);
+                return Ok(Some(cloned_string.into_owned()));
+            }
+            return Ok(None);
+        }
+
+        if line.last() == Some(&b'\r') {
+            line.pop();
+        }
+
+        self.buf.extend(line.iter());
+
+        let result = String::from_utf8_lossy(&self.buf);
+        let cloned_buf = self.buf.clone();
+        self.buf.clear();
+        let cloned_string = String::from_utf8_lossy(&cloned_buf);
+        Ok(Some(cloned_string.into_owned()))
+    }
+}
+
+impl<R: Read> Read for LineReader<R> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.inner.read(buf)
+    }
+}
+
+impl<R: BufRead> BufRead for LineReader<R> {
+    fn fill_buf(&mut self) -> io::Result<&[u8]> {
+        Ok(&self.buf)
+    }
+
+    fn consume(&mut self, amt: usize) {
+        self.buf.drain(..amt);
+    }
+
+    fn read_line(&mut self, buf: &mut String) -> io::Result<usize> {
+        buf.clear();
+        match self.read_line_self() {
+            Ok(Some(line)) => {
+                buf.push_str(&line);
+                Ok(line.len())
+            }
+            Ok(None) => Ok(0),
+            Err(e) => Err(e),
+        }
+    }
+}
+
+
+fn character_profiling() -> Result<(), std::io::Error> {
+    let stdin = io::stdin();
+    let mut frequency_map: HashMap<char, usize> = HashMap::new();
+
+    //let file_reader = BufRead::new(stdin.lock());
+    //old// let mut reader = LineReader::new(stdin.lock());
+    let file_reader: Box<dyn BufRead> = Box::new(stdin.lock()); 
+        
+    let mut reader = LineReader::new(file_reader);
+
+    let mut line = String::new();
+    while reader.read_line(&mut line)? > 0 {
+        // here is where I process all the lines in the file
+        //// println!("Line: {}", line.trim_end());
+        for c in line.chars() {
+            let count = frequency_map.entry(c).or_insert(0);
+            *count += 1;
+        }
+        line.clear();
+    }
+
+    //while let Some(line) = reader.read_line().unwrap() {
+    //    for c in line.chars() {
+    //        let count = frequency_map.entry(c).or_insert(0);
+    //        *count += 1;
+    //    }
+    //}
+
+    println!("{:<8}\t{:<8}\t{}\t{}", "char", "count", "description", "name");
+    println!("{:-<8}\t{:-<8}\t{:-<15}\t{:-<15}", "", "", "", "");
+
+    let mut sorted_chars: Vec<(char, usize)> = frequency_map.into_iter().collect();
+    sorted_chars.sort_unstable_by_key(|&(c, _)| c as u32);
+
+    for (c, count) in sorted_chars {
+        let character_name = unicode_names2::name(c).map_or("UNKNOWN".to_string(), |name| name.to_string());
+        println!("{:<8}\t{:<8}\t{}\t{}", c.escape_unicode(), count, c.escape_debug(), character_name);
+    }
+    Ok(())
+}
+
 fn main() {
 
     let matches = App::new("Bytefreq Data Profiler")
@@ -176,99 +326,122 @@ fn main() {
                 .takes_value(true)
                 .default_value("tabular"),
         )
+        .arg(
+	    Arg::new("report")
+		.short('r')
+		.long("report")
+		.value_name("REPORT")
+		.help("Sets the type of report to generate:\n\
+		       'DQ' - Data Quality (default)\n\
+		       'CP' - Character Profiling")
+		.takes_value(true)
+		.default_value("DQ"),
+	)
         .get_matches();
 
-    let grain = matches.value_of("grain").unwrap();
-    let delimiter = matches.value_of("delimiter").unwrap();
-    let format = matches.value_of("format").unwrap();
 
+    let report = matches.value_of("report").unwrap();
 
-    // new code to process tabular or json data
-    let stdin = io::stdin();
-    let mut frequency_maps: Vec<HashMap<String, usize>> = Vec::new();
-    let mut example_maps: Vec<HashMap<String, String>> = Vec::new();
-    let mut column_names: HashMap<String, usize> = HashMap::new();
-    let mut record_count: usize = 0;
-    let mut input_processed = false;
-
-    for line in stdin.lock().lines().filter_map(Result::ok) {
-        if !line.is_empty() {
-            input_processed = true;      
-            if format == "json" {
-                process_json_line(&line, &mut frequency_maps, &mut example_maps, grain, &mut column_names);
-            } else {
-                if record_count == 0 {
-                    // Process header for tabular data
-                    for (idx, name) in line
-                        .split(delimiter)
-                        .map(|s| s.trim().replace(" ", "_"))
-                        .enumerate()
-                    {
-                        column_names.insert(name.to_string(), idx);
-                        frequency_maps.push(HashMap::new());
-                        example_maps.push(HashMap::new());
-                    }
-                } else {
-                    // Process tabular data
-                    if !column_names.is_empty() { // <-- check if column_names is not empty
-                        let fields = line
-                            .split(delimiter)
-                            .enumerate()
-                            .map(|(i, s)| (column_names.iter().find(|(_, &v)| v == i).unwrap().0.clone(), s))
-                            .collect::<Vec<(String, &str)>>();
-
-                        for (name, value) in fields {
-                            let masked_value = mask_value(value, grain);
-                            let idx = column_names[&name];
-    
-                            let count = frequency_maps[idx].entry(masked_value.clone()).or_insert(0);
-                            *count += 1;
-
-                            // Reservoir sampling
-                            let mut rng = thread_rng();
-                            if rng.gen::<f64>() < 1.0 / (*count as f64) {
-                                example_maps[idx].insert(masked_value.clone(), value.to_string());
-                            }
-                        }
-                    }
-                }
-            }
-            record_count += 1;
+    if report == "CP" {
+        //character_profiling();
+        match character_profiling() {
+            Ok(_) => println!("Character profiling completed successfully."),
+            Err(e) => eprintln!("Error occurred during character profiling: {}", e),
         }
-    }
+    } else {
 
-    let now = Local::now();
-    let now_string = now.format("%Y%m%d %H:%M:%S").to_string();
-    println!();
-    println!("Data Profiling Report: {}", now_string);
-    println!("Examined rows: {}", record_count);
-    println!();
-    println!(
-        "{:<32}\t{:<8}\t{:<8}\t{:<32}",
-        "column", "count", "pattern", "example"
-    );
-    println!("{:-<32}\t{:-<8}\t{:-<8}\t{:-<32}", "", "", "", "");
+	    let grain = matches.value_of("grain").unwrap();
+	    let delimiter = matches.value_of("delimiter").unwrap();
+	    let format = matches.value_of("format").unwrap();
 
-    for (name, idx) in column_names.iter() {
-        if let Some(frequency_map) = frequency_maps.get(*idx) {
-            let mut column_counts = frequency_map
-                .iter()
-                .map(|(value, count)| (value, count))
-                .collect::<Vec<(&String, &usize)>>();
-    
-            column_counts.sort_unstable_by(|a, b| b.1.cmp(a.1));
-    
-            for (value, count) in column_counts {
-                let empty_string = "".to_string();
-                let example = example_maps[*idx].get(value).unwrap_or(&empty_string);
-    
-                println!(
-                    "col_{:05}_{}\t{:<8}\t{:<8}\t{:<32}",
-                    idx, name, count, value, example
-                );
-            }
-        }
-    }
+	    
 
+	    // new code to process tabular or json data
+	    let stdin = io::stdin();
+	    let mut frequency_maps: Vec<HashMap<String, usize>> = Vec::new();
+	    let mut example_maps: Vec<HashMap<String, String>> = Vec::new();
+	    let mut column_names: HashMap<String, usize> = HashMap::new();
+	    let mut record_count: usize = 0;
+	    let mut input_processed = false;
+
+	    for line in stdin.lock().lines().filter_map(Result::ok) {
+		if !line.is_empty() {
+		    input_processed = true;      
+		    if format == "json" {
+			process_json_line(&line, &mut frequency_maps, &mut example_maps, grain, &mut column_names);
+		    } else {
+			if record_count == 0 {
+			    // Process header for tabular data
+			    for (idx, name) in line
+				.split(delimiter)
+				.map(|s| s.trim().replace(" ", "_"))
+				.enumerate()
+			    {
+				column_names.insert(name.to_string(), idx);
+				frequency_maps.push(HashMap::new());
+				example_maps.push(HashMap::new());
+			    }
+			} else {
+			    // Process tabular data
+			    if !column_names.is_empty() { // <-- check if column_names is not empty
+				let fields = line
+				    .split(delimiter)
+				    .enumerate()
+				    .map(|(i, s)| (column_names.iter().find(|(_, &v)| v == i).unwrap().0.clone(), s))
+				    .collect::<Vec<(String, &str)>>();
+
+				for (name, value) in fields {
+				    let masked_value = mask_value(value, grain);
+				    let idx = column_names[&name];
+	    
+				    let count = frequency_maps[idx].entry(masked_value.clone()).or_insert(0);
+				    *count += 1;
+
+				    // Reservoir sampling
+				    let mut rng = thread_rng();
+				    if rng.gen::<f64>() < 1.0 / (*count as f64) {
+					example_maps[idx].insert(masked_value.clone(), value.to_string());
+				    }
+				}
+			    }
+			}
+		    }
+		    record_count += 1;
+		}
+	    }
+
+	    let now = Local::now();
+	    let now_string = now.format("%Y%m%d %H:%M:%S").to_string();
+	    println!();
+	    println!("Data Profiling Report: {}", now_string);
+	    println!("Examined rows: {}", record_count);
+	    println!();
+	    println!(
+		"{:<32}\t{:<8}\t{:<8}\t{:<32}",
+		"column", "count", "pattern", "example"
+	    );
+	    println!("{:-<32}\t{:-<8}\t{:-<8}\t{:-<32}", "", "", "", "");
+
+	    for (name, idx) in column_names.iter() {
+		if let Some(frequency_map) = frequency_maps.get(*idx) {
+		    let mut column_counts = frequency_map
+			.iter()
+			.map(|(value, count)| (value, count))
+			.collect::<Vec<(&String, &usize)>>();
+	    
+		    column_counts.sort_unstable_by(|a, b| b.1.cmp(a.1));
+	    
+		    for (value, count) in column_counts {
+			let empty_string = "".to_string();
+			let example = example_maps[*idx].get(value).unwrap_or(&empty_string);
+	    
+			println!(
+			    "col_{:05}_{}\t{:<8}\t{:<8}\t{:<32}",
+			    idx, name, count, value, example
+			);
+		    }
+		}
+	    }
+    }    
 } // end of main
 
