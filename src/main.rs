@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::io::{self, BufRead};
+use std::io::Read;
 use rand::prelude::*;
 use chrono::{Local};
 use clap::{App, Arg};
@@ -137,26 +138,31 @@ fn process_json_line(
 }
 
 fn character_profiling() {
+
     let stdin = io::stdin();
     let mut frequency_map: HashMap<char, usize> = HashMap::new();
 
-    for line in stdin.lock().lines().filter_map(Result::ok) {
-        for c in line.chars() {
+    let mut buf = [0; 1];
+    let mut stdin_lock = stdin.lock();
+    while let Ok(bytes_read) = stdin_lock.read(&mut buf) {
+        if bytes_read == 0 {
+            break;
+        }
+        if let Some(c) = std::str::from_utf8(&buf).ok().and_then(|s| s.chars().next()) {
             let count = frequency_map.entry(c).or_insert(0);
             *count += 1;
         }
     }
-
-    println!("{:<8}\t{:<8}\t{:<15}\t{}", "char", "count", "description", "name");
+ 
+    println!("{:<8}\t{:<8}\t{}\t{}", "char", "count", "description", "name");
     println!("{:-<8}\t{:-<8}\t{:-<15}\t{:-<15}", "", "", "", "");
 
     let mut sorted_chars: Vec<(char, usize)> = frequency_map.into_iter().collect();
     sorted_chars.sort_unstable_by_key(|&(c, _)| c as u32);
 
     for (c, count) in sorted_chars {
-        let character_name = unicode_names2::name(c).unwrap_or("UNKNOWN");
-        //let character_name = unicode_names2::name(&c.to_string()).unwrap_or("UNKNOWN");
-        println!("{:<8}\t{:<8}\t{:<15}\t{}", c.escape_unicode(), count, c.escape_debug(), character_name);
+        let character_name = unicode_names2::name(c).map_or("UNKNOWN".to_string(), |name| name.to_string());
+        println!("{:<8}\t{:<8}\t{}\t{}", c.escape_unicode(), count, c.escape_debug(), character_name);
     }
 }
 
