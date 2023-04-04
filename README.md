@@ -4,12 +4,14 @@
 
 A "Mask" is the output of a function that generalises a string of data into a pattern, the mask, which greatly reduces the cardinality of the original values. This cardinality reduction allows you to inspect vast quantities of data quickly in a field or column, helping you to discover outliers and data quality issues in your dataset. Examples of each pattern help to validate what you can expect when you come to use the data in a use case. **bytefreq-rs** is a refactor of the original bytefreq tool found here: https://github.com/minkymorgan/bytefreq
 ### Features:
-- Supports both JSON and Delimited tabular data formats 
-- Offers modern masks: "Unicode HighGrain", and "Unicode LowGrain"
+- Produces two report formats: Data Profiling, and Byte Frequency reports 
+- Supports both complex nested JSON and Delimited tabular data formats 
+- Offers modern masks: "HU: HighGrain Unicode", and "LU: LowGrain Unicode"
 - Supports well known ASCII "HighGrain" and "LowGrain" masks 
 - Produces human readable Frequency counts of the patterns/masks in your data.
 - Reports a true random example of a mask, using Reservoir Sampling. 
-- Handles complex json nesting, including unrolling arrays
+- Handles complex json nesting, including unrolling arrays. 
+- Byte frequency reports supports Unicode, as well as control characts like LF / CR
 
 I highly suggest you pre-parse complex csv using a decent parser, and pass clean pipe delimited values to this program. Also - this program expects a header for tabular data. (note: If there are ragged columns, this will probably error presently)
 
