@@ -136,6 +136,28 @@ fn process_json_line(
     }
 }
 
+fn character_profiling() {
+    let stdin = io::stdin();
+    let mut frequency_map: HashMap<char, usize> = HashMap::new();
+
+    for line in stdin.lock().lines().filter_map(Result::ok) {
+        for c in line.chars() {
+            let count = frequency_map.entry(c).or_insert(0);
+            *count += 1;
+        }
+    }
+
+    println!("{:<8}\t{:<8}\t{}", "char", "count", "description");
+    println!("{:-<8}\t{:-<8}\t{:-<15}", "", "", "");
+
+    let mut sorted_chars: Vec<(char, usize)> = frequency_map.into_iter().collect();
+    sorted_chars.sort_unstable_by_key(|&(c, _)| c as u32);
+
+    for (c, count) in sorted_chars {
+        println!("{:<8}\t{:<8}\t{}", c.escape_unicode(), count, c.escape_debug());
+    }
+}
+
 fn main() {
 
     let matches = App::new("Bytefreq Data Profiler")
@@ -176,99 +198,118 @@ fn main() {
                 .takes_value(true)
                 .default_value("tabular"),
         )
+        .arg(
+	    Arg::new("report")
+		.short('r')
+		.long("report")
+		.value_name("REPORT")
+		.help("Sets the type of report to generate:\n\
+		       'DQ' - Data Quality (default)\n\
+		       'CP' - Character Profiling")
+		.takes_value(true)
+		.default_value("DQ"),
+	)
         .get_matches();
 
-    let grain = matches.value_of("grain").unwrap();
-    let delimiter = matches.value_of("delimiter").unwrap();
-    let format = matches.value_of("format").unwrap();
 
+    let report = matches.value_of("report").unwrap();
 
-    // new code to process tabular or json data
-    let stdin = io::stdin();
-    let mut frequency_maps: Vec<HashMap<String, usize>> = Vec::new();
-    let mut example_maps: Vec<HashMap<String, String>> = Vec::new();
-    let mut column_names: HashMap<String, usize> = HashMap::new();
-    let mut record_count: usize = 0;
-    let mut input_processed = false;
+    if report == "CP" {
+        character_profiling();
+    } else {
 
-    for line in stdin.lock().lines().filter_map(Result::ok) {
-        if !line.is_empty() {
-            input_processed = true;      
-            if format == "json" {
-                process_json_line(&line, &mut frequency_maps, &mut example_maps, grain, &mut column_names);
-            } else {
-                if record_count == 0 {
-                    // Process header for tabular data
-                    for (idx, name) in line
-                        .split(delimiter)
-                        .map(|s| s.trim().replace(" ", "_"))
-                        .enumerate()
-                    {
-                        column_names.insert(name.to_string(), idx);
-                        frequency_maps.push(HashMap::new());
-                        example_maps.push(HashMap::new());
-                    }
-                } else {
-                    // Process tabular data
-                    if !column_names.is_empty() { // <-- check if column_names is not empty
-                        let fields = line
-                            .split(delimiter)
-                            .enumerate()
-                            .map(|(i, s)| (column_names.iter().find(|(_, &v)| v == i).unwrap().0.clone(), s))
-                            .collect::<Vec<(String, &str)>>();
+	    let grain = matches.value_of("grain").unwrap();
+	    let delimiter = matches.value_of("delimiter").unwrap();
+	    let format = matches.value_of("format").unwrap();
 
-                        for (name, value) in fields {
-                            let masked_value = mask_value(value, grain);
-                            let idx = column_names[&name];
-    
-                            let count = frequency_maps[idx].entry(masked_value.clone()).or_insert(0);
-                            *count += 1;
+	    
 
-                            // Reservoir sampling
-                            let mut rng = thread_rng();
-                            if rng.gen::<f64>() < 1.0 / (*count as f64) {
-                                example_maps[idx].insert(masked_value.clone(), value.to_string());
-                            }
-                        }
-                    }
-                }
-            }
-            record_count += 1;
-        }
-    }
+	    // new code to process tabular or json data
+	    let stdin = io::stdin();
+	    let mut frequency_maps: Vec<HashMap<String, usize>> = Vec::new();
+	    let mut example_maps: Vec<HashMap<String, String>> = Vec::new();
+	    let mut column_names: HashMap<String, usize> = HashMap::new();
+	    let mut record_count: usize = 0;
+	    let mut input_processed = false;
 
-    let now = Local::now();
-    let now_string = now.format("%Y%m%d %H:%M:%S").to_string();
-    println!();
-    println!("Data Profiling Report: {}", now_string);
-    println!("Examined rows: {}", record_count);
-    println!();
-    println!(
-        "{:<32}\t{:<8}\t{:<8}\t{:<32}",
-        "column", "count", "pattern", "example"
-    );
-    println!("{:-<32}\t{:-<8}\t{:-<8}\t{:-<32}", "", "", "", "");
+	    for line in stdin.lock().lines().filter_map(Result::ok) {
+		if !line.is_empty() {
+		    input_processed = true;      
+		    if format == "json" {
+			process_json_line(&line, &mut frequency_maps, &mut example_maps, grain, &mut column_names);
+		    } else {
+			if record_count == 0 {
+			    // Process header for tabular data
+			    for (idx, name) in line
+				.split(delimiter)
+				.map(|s| s.trim().replace(" ", "_"))
+				.enumerate()
+			    {
+				column_names.insert(name.to_string(), idx);
+				frequency_maps.push(HashMap::new());
+				example_maps.push(HashMap::new());
+			    }
+			} else {
+			    // Process tabular data
+			    if !column_names.is_empty() { // <-- check if column_names is not empty
+				let fields = line
+				    .split(delimiter)
+				    .enumerate()
+				    .map(|(i, s)| (column_names.iter().find(|(_, &v)| v == i).unwrap().0.clone(), s))
+				    .collect::<Vec<(String, &str)>>();
 
-    for (name, idx) in column_names.iter() {
-        if let Some(frequency_map) = frequency_maps.get(*idx) {
-            let mut column_counts = frequency_map
-                .iter()
-                .map(|(value, count)| (value, count))
-                .collect::<Vec<(&String, &usize)>>();
-    
-            column_counts.sort_unstable_by(|a, b| b.1.cmp(a.1));
-    
-            for (value, count) in column_counts {
-                let empty_string = "".to_string();
-                let example = example_maps[*idx].get(value).unwrap_or(&empty_string);
-    
-                println!(
-                    "col_{:05}_{}\t{:<8}\t{:<8}\t{:<32}",
-                    idx, name, count, value, example
-                );
-            }
-        }
-    }
+				for (name, value) in fields {
+				    let masked_value = mask_value(value, grain);
+				    let idx = column_names[&name];
+	    
+				    let count = frequency_maps[idx].entry(masked_value.clone()).or_insert(0);
+				    *count += 1;
 
+				    // Reservoir sampling
+				    let mut rng = thread_rng();
+				    if rng.gen::<f64>() < 1.0 / (*count as f64) {
+					example_maps[idx].insert(masked_value.clone(), value.to_string());
+				    }
+				}
+			    }
+			}
+		    }
+		    record_count += 1;
+		}
+	    }
+
+	    let now = Local::now();
+	    let now_string = now.format("%Y%m%d %H:%M:%S").to_string();
+	    println!();
+	    println!("Data Profiling Report: {}", now_string);
+	    println!("Examined rows: {}", record_count);
+	    println!();
+	    println!(
+		"{:<32}\t{:<8}\t{:<8}\t{:<32}",
+		"column", "count", "pattern", "example"
+	    );
+	    println!("{:-<32}\t{:-<8}\t{:-<8}\t{:-<32}", "", "", "", "");
+
+	    for (name, idx) in column_names.iter() {
+		if let Some(frequency_map) = frequency_maps.get(*idx) {
+		    let mut column_counts = frequency_map
+			.iter()
+			.map(|(value, count)| (value, count))
+			.collect::<Vec<(&String, &usize)>>();
+	    
+		    column_counts.sort_unstable_by(|a, b| b.1.cmp(a.1));
+	    
+		    for (value, count) in column_counts {
+			let empty_string = "".to_string();
+			let example = example_maps[*idx].get(value).unwrap_or(&empty_string);
+	    
+			println!(
+			    "col_{:05}_{}\t{:<8}\t{:<8}\t{:<32}",
+			    idx, name, count, value, example
+			);
+		    }
+		}
+	    }
+    }    
 } // end of main
 
