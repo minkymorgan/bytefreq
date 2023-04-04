@@ -7,6 +7,7 @@ use clap::{App, Arg};
 use serde_json::{Value, Map};
 use unic::ucd::GeneralCategory as Category;
 use unicode_names2; 
+use std::borrow::Cow;
 
 // this is a highgrain Mask that works for unicode data!
 fn get_generalized_char(c: char) -> char {
@@ -177,23 +178,16 @@ fn init_control_character_descriptions() -> HashMap<char, &'static str> {
 
 
 fn character_profiling() {
-
-    let stdin = io::stdin();
+let stdin = io::stdin();
     let mut frequency_map: HashMap<char, usize> = HashMap::new();
-    let control_character_descriptions = init_control_character_descriptions();
 
-    let mut buf = [0; 1];
-    let mut stdin_lock = stdin.lock();
-    while let Ok(bytes_read) = stdin_lock.read(&mut buf) {
-        if bytes_read == 0 {
-            break;
-        }
-        if let Some(c) = std::str::from_utf8(&buf).ok().and_then(|s| s.chars().next()) {
+    for line in stdin.lock().lines().filter_map(Result::ok) {
+        for c in line.chars() {
             let count = frequency_map.entry(c).or_insert(0);
             *count += 1;
         }
     }
- 
+
     println!("{:<8}\t{:<8}\t{}\t{}", "char", "count", "description", "name");
     println!("{:-<8}\t{:-<8}\t{:-<15}\t{:-<15}", "", "", "", "");
 
@@ -201,10 +195,7 @@ fn character_profiling() {
     sorted_chars.sort_unstable_by_key(|&(c, _)| c as u32);
 
     for (c, count) in sorted_chars {
-        let character_name = match unicode_names2::name(c) {
-            Some(name) if name.as_str() != "UNKNOWN" => name.as_str(),
-            _ => control_character_descriptions.get(&c).unwrap_or(&"UNKNOWN"),
-        };
+        let character_name = unicode_names2::name(c).map_or("UNKNOWN".to_string(), |name| name.to_string());
         println!("{:<8}\t{:<8}\t{}\t{}", c.escape_unicode(), count, c.escape_debug(), character_name);
     }
 }
