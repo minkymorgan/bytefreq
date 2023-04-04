@@ -202,9 +202,9 @@ fn character_profiling() {
 
     for (c, count) in sorted_chars {
         let character_name = match unicode_names2::name(c) {
-             Some(name) if name != "UNKNOWN" => name,
-             _ => control_character_descriptions.get(&c).unwrap_or(&"UNKNOWN"),
-         };
+            Some(name) if name.as_str() != "UNKNOWN" => name.as_str(),
+            _ => control_character_descriptions.get(&c).unwrap_or(&"UNKNOWN"),
+        };
         println!("{:<8}\t{:<8}\t{}\t{}", c.escape_unicode(), count, c.escape_debug(), character_name);
     }
 }
