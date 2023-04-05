@@ -10,7 +10,7 @@ use unic::ucd::GeneralCategory as Category;
 use unicode_names2; 
 
 // this is a highgrain Mask that works for unicode data!
-fn get_generalized_char(c: char) -> char {
+fn high_grain_unicode_mask(c: char) -> char {
     match c {
         '0'..='9' => '9',
         'a'..='z' => 'a',
@@ -72,8 +72,8 @@ fn mask_value(value: &str, grain: &str) -> String {
     match grain {
         "H" => high_grain_mask(value),
         "L" => low_grain_mask(value),
-        "LU" => low_grain_mask(&value.chars().map(|c| get_generalized_char(c)).collect::<String>()),
-        _u => value.chars().map(|c| get_generalized_char(c)).collect(),
+        "LU" => low_grain_mask(&value.chars().map(|c| high_grain_unicode_mask(c)).collect::<String>()),
+        _u => value.chars().map(|c| high_grain_unicode_mask(c)).collect(),
     }
 }
 
