@@ -356,6 +356,7 @@ fn main() {
 	    let mut frequency_maps: Vec<HashMap<String, usize>> = Vec::new();
 	    let mut example_maps: Vec<HashMap<String, String>> = Vec::new();
 	    let mut column_names: HashMap<String, usize> = HashMap::new();
+            let mut field_count_map: HashMap<usize, usize> = HashMap::new();
 	    let mut record_count: usize = 0;
 	    let mut input_processed = false;
 
@@ -366,8 +367,9 @@ fn main() {
 			process_json_line(&line, &mut frequency_maps, &mut example_maps, grain, &mut column_names);
 		    } else {
 			if record_count == 0 {
+                            let header = line; //+ delimiter + "Err1" + delimiter + "Err2";
 			    // Process header for tabular data
-			    for (idx, name) in line
+			    for (idx, name) in header 
 				.split(delimiter)
 				.map(|s| s.trim().replace(" ", "_"))
 				.enumerate()
@@ -377,29 +379,51 @@ fn main() {
 				example_maps.push(HashMap::new());
 			    }
 			} else {
-			    // Process tabular data
-			    if !column_names.is_empty() { // <-- check if column_names is not empty
-				let fields = line
-				    .split(delimiter)
-				    .enumerate()
-				    .map(|(i, s)| (column_names.iter().find(|(_, &v)| v == i).unwrap().0.clone(), s))
-				    .collect::<Vec<(String, &str)>>();
+                            // Process tabular data
+                            if !column_names.is_empty() {
+                                let fields = line.split(delimiter).collect::<Vec<&str>>();
+                                let mut processed_fields = Vec::new();
 
-				for (name, value) in fields {
-				    let masked_value = mask_value(value, grain);
-				    let idx = column_names[&name];
-	    
-				    let count = frequency_maps[idx].entry(masked_value.clone()).or_insert(0);
-				    *count += 1;
+                                for (i, field) in fields.iter().enumerate() {
+                                    let column_name = match column_names.iter().find(|(_, &v)| v == i) {
+                                        Some((name, _)) => name.clone(),
+                                        None => {
+                                            let extra_column_index = i + 1 - column_names.len();
+                                            let new_name = format!("RaggedErr{}", extra_column_index);
 
-				    // Reservoir sampling
-				    let mut rng = thread_rng();
-				    if rng.gen::<f64>() < 1.0 / (*count as f64) {
-					example_maps[idx].insert(masked_value.clone(), value.to_string());
-				    }
-				}
-			    }
-			}
+                                            // Update column_names, frequency_maps, and example_maps for the new column
+                                            column_names.insert(new_name.clone(), column_names.len());
+                                            frequency_maps.push(HashMap::new());
+                                            example_maps.push(HashMap::new());
+
+                                            new_name
+                                        }
+                                    };
+                                    processed_fields.push((column_name, field));
+                                }
+
+                                let field_count = processed_fields.len();
+                                *field_count_map.entry(field_count).or_insert(0) += 1;
+
+                                for (name, value) in &processed_fields {
+                                    let masked_value = mask_value(value, grain);
+
+                                    if let Some(idx) = column_names.get(name) {
+                                        let count = frequency_maps[*idx].entry(masked_value.clone()).or_insert(0);
+                                        *count += 1;
+
+                                        // Reservoir sampling
+                                        let mut rng = thread_rng();
+                                        if rng.gen::<f64>() < 1.0 / (*count as f64) {
+                                            example_maps[*idx].insert(masked_value.clone(), value.to_string());
+                                        }
+                                    } else {
+                                        // Handle the case when the column name is not found in the HashMap
+                                        println!("Warning: Column name not found in the HashMap: {}", name);
+                                    }
+                                }
+                            }
+			}   //end of else
 		    }
 		    record_count += 1;
 		}
@@ -411,6 +435,13 @@ fn main() {
 	    println!("Data Profiling Report: {}", now_string);
 	    println!("Examined rows: {}", record_count);
 	    println!();
+            println!("FieldsPerLine:"); 
+            // Print the field count map
+                for (field_count, frequency) in &field_count_map {
+                    println!("{} fields: {} rows", field_count, frequency);
+                }
+ 
+            println!();
 	    println!(
 		"{:<32}\t{:<8}\t{:<8}\t{:<32}",
 		"column", "count", "pattern", "example"
