@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 use std::io::{self, BufRead, Read};
-//use std::io::{self, BufRead};
-
 use rand::prelude::*;
 use chrono::{Local};
 use clap::{App, Arg};
@@ -84,22 +82,32 @@ fn process_json_value(
     grain: &str,
     prefix: String,
     column_names: &mut HashMap<String, usize>,
+    remove_array_numbers: bool, 
+    pathdepth: usize,
+    current_depth: usize,
 ) {
     match value {
         Value::Object(map) => {
-            for (key, value) in map.iter() {
-                let full_key = if prefix.is_empty() {
-                    key.to_string()
-                } else {
-                    format!("{}.{}", prefix, key)
-                };
-                process_json_value(value, frequency_maps, example_maps, grain, full_key, column_names);
+            if current_depth < pathdepth {
+                for (key, value) in map.iter() {
+                    let full_key = if prefix.is_empty() {
+                        key.to_string()
+                    } else {
+                        format!("{}.{}", prefix, key)
+                    };
+                    //process_json_value(value, frequency_maps, example_maps, grain, full_key, column_names, pathdepth + 1, current_depth);
+                    process_json_value(value, frequency_maps, example_maps, grain, full_key, column_names, remove_array_numbers, pathdepth + 1, current_depth);
+                }
             }
         }
         Value::Array(values) => {
             for (idx, value) in values.iter().enumerate() {
-                let full_key = format!("{}[{}]", prefix, idx);
-                process_json_value(value, frequency_maps, example_maps, grain, full_key, column_names);
+                let full_key = if remove_array_numbers {
+                    format!("{}[]", prefix)
+                } else {
+                    format!("{}[{}]", prefix, idx)
+                };
+                process_json_value(value, frequency_maps, example_maps, grain, full_key, column_names, remove_array_numbers, pathdepth + 1, current_depth);
             }
         }
         _ => {
@@ -132,9 +140,17 @@ fn process_json_line(
     example_maps: &mut Vec<HashMap<String, String>>,
     grain: &str,
     column_names: &mut HashMap<String, usize>,
+    pathdepth: usize,
+    remove_array_numbers: bool,
 ) {
     if let Ok(json_value) = serde_json::from_str::<Value>(line) {
-        process_json_value(&json_value, frequency_maps, example_maps, grain, String::new(), column_names);
+        //process_json_value(&json_value, frequency_maps, example_maps, grain, String::new(), column_names, pathdepth, 0);
+        //process_json_value(&json_value, frequency_maps, example_maps, grain, String::new(), column_names, remove_array_numbers, pathdepth, 0);
+        //process_json_value(&json_value, frequency_maps, example_maps, grain, String::new(), column_names, || remove_array_numbers, pathdepth, 0);
+        //process_json_value(&json_value, frequency_maps, example_maps, grain, String::new(), column_names, || remove_array_numbers.clone(), pathdepth, 0);
+        //process_json_value(&json_value, frequency_maps, example_maps, grain, String::new(), column_names, remove_array_numbers, pathdepth, 0);
+        process_json_value(&json_value, frequency_maps, example_maps, grain, String::new(), column_names, remove_array_numbers, pathdepth, 0);
+
     }
 }
 
@@ -332,6 +348,24 @@ fn main() {
 		.takes_value(true)
 		.default_value("DQ"),
 	)
+        .arg(
+            Arg::new("pathdepth")
+                .short('p')
+                .long("pathdepth")
+                .value_name("PATHDEPTH")
+                .help("Sets the depth for JSON paths (applicable for JSON data only).")
+                .takes_value(true)
+                .default_value("2"),
+        )
+        .arg(
+            Arg::new("remove_array_numbers")
+                .short('a')
+                .long("remove-array-numbers")
+                .value_name("REMOVE_ARRAY_NUMBERS")
+                .help("Remove array numbers when set to true")
+                .takes_value(true)
+                .default_value("false"),
+        )
         .get_matches();
 
 
@@ -349,8 +383,6 @@ fn main() {
 	    let delimiter = matches.value_of("delimiter").unwrap();
 	    let format = matches.value_of("format").unwrap();
 
-	    
-
 	    // new code to process tabular or json data
 	    let stdin = io::stdin();
 	    let mut frequency_maps: Vec<HashMap<String, usize>> = Vec::new();
@@ -359,12 +391,17 @@ fn main() {
             let mut field_count_map: HashMap<usize, usize> = HashMap::new();
 	    let mut record_count: usize = 0;
 	    let mut input_processed = false;
+            let pathdepth = matches.value_of("pathdepth").unwrap().parse::<usize>().unwrap();
+            let remove_array_numbers = matches.value_of("remove_array_numbers").unwrap() != "false";
 
 	    for line in stdin.lock().lines().filter_map(Result::ok) {
 		if !line.is_empty() {
 		    input_processed = true;      
 		    if format == "json" {
-			process_json_line(&line, &mut frequency_maps, &mut example_maps, grain, &mut column_names);
+                        //process_json_line(&line, &mut frequency_maps, &mut example_maps, grain, &mut column_names, pathdepth);
+                        //process_json_line(&line, &mut frequency_maps, &mut example_maps, grain, &mut column_names, remove_array_numbers);
+                        process_json_line(&line, &mut frequency_maps, &mut example_maps, grain, &mut column_names, pathdepth, remove_array_numbers);
+
 		    } else {
 			if record_count == 0 {
                             let header = line; //+ delimiter + "Err1" + delimiter + "Err2";
