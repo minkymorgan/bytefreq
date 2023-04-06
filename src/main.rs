@@ -191,6 +191,11 @@ fn init_control_character_descriptions() -> HashMap<char, &'static str> {
     ref_map.insert('\u{008A}', "LINE TABULATION SET * Deprecated from Unicode 3.2, 2002");
     ref_map.insert('\u{0090}', "ERROR - Undefined CTRL Character.");
     ref_map.insert('\u{009A}', "LATIN CAPITAL S WITH CARON");
+    ref_map.insert('\u{FDD0}', "Non-character code point");
+    ref_map.insert('\u{FDD1}', "Non-character code point");
+    ref_map.insert('\u{FDD2}', "Non-character code point");
+    ref_map.insert('\u{FDD3}', "Non-character code point");
+    ref_map.insert('\u{FDD4}', "Non-character code point");
     ref_map
 }
 
