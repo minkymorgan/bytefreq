@@ -189,6 +189,8 @@ fn init_control_character_descriptions() -> HashMap<char, &'static str> {
     ref_map.insert('\u{001E}', "RS - Record Separator");
     ref_map.insert('\u{001F}', "US - Unit Separator");
     ref_map.insert('\u{008A}', "LINE TABULATION SET * Deprecated from Unicode 3.2, 2002");
+    ref_map.insert('\u{0090}', "ERROR - Undefined CTRL Character.");
+    ref_map.insert('\u{009A}', "LATIN CAPITAL S WITH CARON");
     ref_map
 }
 
