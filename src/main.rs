@@ -95,7 +95,6 @@ fn process_json_value(
                     } else {
                         format!("{}.{}", prefix, key)
                     };
-                    //process_json_value(value, frequency_maps, example_maps, grain, full_key, column_names, pathdepth + 1, current_depth);
                     process_json_value(value, frequency_maps, example_maps, grain, full_key, column_names, remove_array_numbers, pathdepth + 1, current_depth);
                 }
             }
@@ -144,11 +143,6 @@ fn process_json_line(
     remove_array_numbers: bool,
 ) {
     if let Ok(json_value) = serde_json::from_str::<Value>(line) {
-        //process_json_value(&json_value, frequency_maps, example_maps, grain, String::new(), column_names, pathdepth, 0);
-        //process_json_value(&json_value, frequency_maps, example_maps, grain, String::new(), column_names, remove_array_numbers, pathdepth, 0);
-        //process_json_value(&json_value, frequency_maps, example_maps, grain, String::new(), column_names, || remove_array_numbers, pathdepth, 0);
-        //process_json_value(&json_value, frequency_maps, example_maps, grain, String::new(), column_names, || remove_array_numbers.clone(), pathdepth, 0);
-        //process_json_value(&json_value, frequency_maps, example_maps, grain, String::new(), column_names, remove_array_numbers, pathdepth, 0);
         process_json_value(&json_value, frequency_maps, example_maps, grain, String::new(), column_names, remove_array_numbers, pathdepth, 0);
 
     }
@@ -267,7 +261,6 @@ struct LineReader<R: Read> {
     buf: Vec<u8>,
 }
 
-/// <<<<<<
 impl<R: BufRead> LineReader<R> {
     fn new(inner: R) -> Self {
         Self { inner, buf: Vec::new() }
@@ -279,7 +272,6 @@ impl<R: BufRead> LineReader<R> {
 
         if bytes_read == 0 {
             if !self.buf.is_empty() {
-                let leftover = String::from_utf8_lossy(&self.buf);
                 let cloned_buf = self.buf.clone(); 
                 self.buf.clear();
                 let cloned_string = String::from_utf8_lossy(&cloned_buf);
@@ -294,7 +286,6 @@ impl<R: BufRead> LineReader<R> {
 
         self.buf.extend(line.iter());
 
-        let result = String::from_utf8_lossy(&self.buf);
         let cloned_buf = self.buf.clone();
         self.buf.clear();
         let cloned_string = String::from_utf8_lossy(&cloned_buf);
@@ -371,7 +362,7 @@ fn main() {
 
     let matches = App::new("Bytefreq Data Profiler")
         .version("1.0")
-        .author("Andrew Morgan <minkymorgan@gmail.com>\nhttps://www.linkedin.com/in/andrew-morgan-8590b22/\n")
+        .author("Andrew Morgan <minkymorgan@gmail.com>\n")
         .about("A command-line tool to generate data profiling reports based on various masking strategies.")
         .arg(
             Arg::new("grain")
@@ -460,13 +451,11 @@ fn main() {
 	    let mut column_names: HashMap<String, usize> = HashMap::new();
             let mut field_count_map: HashMap<usize, usize> = HashMap::new();
 	    let mut record_count: usize = 0;
-	    let mut input_processed = false;
             let pathdepth = matches.value_of("pathdepth").unwrap().parse::<usize>().unwrap();
             let remove_array_numbers = matches.value_of("remove_array_numbers").unwrap() != "false";
 
 	    for line in stdin.lock().lines().filter_map(Result::ok) {
 		if !line.is_empty() {
-		    input_processed = true;      
 		    if format == "json" {
                         //process_json_line(&line, &mut frequency_maps, &mut example_maps, grain, &mut column_names, pathdepth);
                         //process_json_line(&line, &mut frequency_maps, &mut example_maps, grain, &mut column_names, remove_array_numbers);
