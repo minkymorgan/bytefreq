@@ -15,6 +15,11 @@ A "Mask" is the output of a function that generalises a string of data into a pa
 
 I highly suggest you pre-parse complex csv using a decent parser, and pass clean pipe delimited values to this program. Also - this program expects a header for tabular data. (note: If there are ragged columns, this will probably error presently)
 
+### Author:
+**andrew.morgan@6point6.co.uk**
+
+This code has been refactored with the help of chatGPT4 as a demonstration of it's refactoring abilities. The ideas and final coding have been put together by Andrew Morgan, author of Mastering Spark for Data Science. The technique is described in the book. https://www.amazon.co.uk/Mastering-Spark-Science-Andrew-Morgan/dp/1785882147
+
 ### License:
 
 Bytefreq-rs is released under the GNU General Public License v3.0.
