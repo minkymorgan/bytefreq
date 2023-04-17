@@ -2,11 +2,12 @@ use chrono::Local;
 use clap::{App, Arg};
 use rand::prelude::*;
 use serde_json::Value;
-use std::collection;
 use std::collections::HashMap;
 use std::io::{self, BufRead, Read};
 use unic::ucd::GeneralCategory as Category;
 use unicode_names2;
+use serde_json::json;
+
 
 // this is a highgrain Mask that works for unicode data!
 fn high_grain_unicode_mask(c: char) -> char {
