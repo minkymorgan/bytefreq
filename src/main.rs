@@ -133,6 +133,21 @@ fn process_json_value(
     }
 }
 
+// added to offer data quality on read functionality
+fn process_tabular_line_as_json(line: &str, delimiter: &str, column_names: &HashMap<String, usize>) -> serde_json::Value {
+    let fields: Vec<&str> = line.split(delimiter).collect();
+    let mut json_obj = serde_json::Map::new();
+
+    for (name, idx) in column_names.iter() {
+        if let Some(field_value) = fields.get(*idx) {
+            json_obj.insert(name.clone(), serde_json::Value::String(field_value.to_string()));
+        }
+    }
+
+    serde_json::Value::Object(json_obj)
+}
+
+
 fn process_json_line(
     line: &str,
     frequency_maps: &mut Vec<HashMap<String, usize>>,
@@ -427,10 +442,20 @@ fn main() {
                 .takes_value(true)
                 .default_value("false"),
         )
+	.arg(
+	    Arg::new("enhanced_output")
+		.short('e')
+		.long("enhanced-output")
+		.value_name("ENHANCED_OUTPUT")
+		.help("Output the processed tabular data in JSON format when set to true.")
+		.takes_value(true)
+		.default_value("false"),
+	)
         .get_matches();
 
 
     let report = matches.value_of("report").unwrap();
+    let enhanced_output = matches.value_of("enhanced_output").unwrap() != "false";
 
     if report == "CP" {
         //character_profiling();
@@ -457,8 +482,6 @@ fn main() {
 	    for line in stdin.lock().lines().filter_map(Result::ok) {
 		if !line.is_empty() {
 		    if format == "json" {
-                        //process_json_line(&line, &mut frequency_maps, &mut example_maps, grain, &mut column_names, pathdepth);
-                        //process_json_line(&line, &mut frequency_maps, &mut example_maps, grain, &mut column_names, remove_array_numbers);
                         process_json_line(&line, &mut frequency_maps, &mut example_maps, grain, &mut column_names, pathdepth, remove_array_numbers);
 
 		    } else {
@@ -519,6 +542,12 @@ fn main() {
                                     }
                                 }
                             }
+
+                            // Output the processed tabular line in JSON format if the json_output flag is set to true
+			    if enhanced_output {
+			        let json_line = process_tabular_line_as_json(&line, delimiter, &column_names);
+				println!("{}", serde_json::to_string(&json_line).unwrap());
+			    }
 			}   //end of else
 		    }
 		    record_count += 1;
