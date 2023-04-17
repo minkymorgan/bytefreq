@@ -1,11 +1,12 @@
+use chrono::Local;
+use clap::{App, Arg};
+use rand::prelude::*;
+use serde_json::Value;
+use std::collection;
 use std::collections::HashMap;
 use std::io::{self, BufRead, Read};
-use rand::prelude::*;
-use chrono::{Local};
-use clap::{App, Arg};
-use serde_json::{Value};
 use unic::ucd::GeneralCategory as Category;
-use unicode_names2; 
+use unicode_names2;
 
 // this is a highgrain Mask that works for unicode data!
 fn high_grain_unicode_mask(c: char) -> char {
@@ -59,7 +60,7 @@ fn low_grain_mask(value: &str) -> String {
             last_char = Some(c);
         }
     }
-        if output.is_empty() {
+    if output.is_empty() {
         "_".to_string()
     } else {
         output
@@ -70,7 +71,12 @@ fn mask_value(value: &str, grain: &str) -> String {
     match grain {
         "H" => high_grain_mask(value),
         "L" => low_grain_mask(value),
-        "LU" => low_grain_mask(&value.chars().map(|c| high_grain_unicode_mask(c)).collect::<String>()),
+        "LU" => low_grain_mask(
+            &value
+                .chars()
+                .map(|c| high_grain_unicode_mask(c))
+                .collect::<String>(),
+        ),
         _u => value.chars().map(|c| high_grain_unicode_mask(c)).collect(),
     }
 }
@@ -82,7 +88,7 @@ fn process_json_value(
     grain: &str,
     prefix: String,
     column_names: &mut HashMap<String, usize>,
-    remove_array_numbers: bool, 
+    remove_array_numbers: bool,
     pathdepth: usize,
     current_depth: usize,
 ) {
@@ -95,7 +101,17 @@ fn process_json_value(
                     } else {
                         format!("{}.{}", prefix, key)
                     };
-                    process_json_value(value, frequency_maps, example_maps, grain, full_key, column_names, remove_array_numbers, pathdepth + 1, current_depth);
+                    process_json_value(
+                        value,
+                        frequency_maps,
+                        example_maps,
+                        grain,
+                        full_key,
+                        column_names,
+                        remove_array_numbers,
+                        pathdepth + 1,
+                        current_depth,
+                    );
                 }
             }
         }
@@ -106,22 +122,32 @@ fn process_json_value(
                 } else {
                     format!("{}[{}]", prefix, idx)
                 };
-                process_json_value(value, frequency_maps, example_maps, grain, full_key, column_names, remove_array_numbers, pathdepth + 1, current_depth);
+                process_json_value(
+                    value,
+                    frequency_maps,
+                    example_maps,
+                    grain,
+                    full_key,
+                    column_names,
+                    remove_array_numbers,
+                    pathdepth + 1,
+                    current_depth,
+                );
             }
         }
         _ => {
             let value_str = value.to_string();
             let masked_value = mask_value(&value_str, grain);
-            let idx = column_names
-                .entry(prefix.clone())
-                .or_insert_with(|| {
-                    let new_idx = frequency_maps.len();
-                    frequency_maps.push(HashMap::new());
-                    example_maps.push(HashMap::new());
-                    new_idx
-                });
+            let idx = column_names.entry(prefix.clone()).or_insert_with(|| {
+                let new_idx = frequency_maps.len();
+                frequency_maps.push(HashMap::new());
+                example_maps.push(HashMap::new());
+                new_idx
+            });
 
-            let count = frequency_maps[*idx].entry(masked_value.clone()).or_insert(0);
+            let count = frequency_maps[*idx]
+                .entry(masked_value.clone())
+                .or_insert(0);
             *count += 1;
 
             // Reservoir sampling
@@ -133,20 +159,25 @@ fn process_json_value(
     }
 }
 
-// added to offer data quality on read functionality
-fn process_tabular_line_as_json(line: &str, delimiter: &str, column_names: &HashMap<String, usize>) -> serde_json::Value {
-    let fields: Vec<&str> = line.split(delimiter).collect();
-    let mut json_obj = serde_json::Map::new();
+// Function to process a tabular line and convert it into an enhanced JSON object
+fn process_tabular_line_as_json(processed_fields: &Vec<(String, &str)>) -> serde_json::Value {
+    let mut json_line: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
 
-    for (name, idx) in column_names.iter() {
-        if let Some(field_value) = fields.get(*idx) {
-            json_obj.insert(name.clone(), serde_json::Value::String(field_value.to_string()));
-        }
+    for (column_name, value) in processed_fields {
+        let hu_masked_value = mask_value(value, "H");
+        let lu_masked_value = mask_value(value, "LU");
+
+        let enhanced_value = json!({
+            "raw": value,
+            "HU": hu_masked_value,
+            "LU": lu_masked_value
+        });
+
+        json_line.insert(column_name.clone(), enhanced_value);
     }
 
-    serde_json::Value::Object(json_obj)
+    serde_json::Value::Object(json_line)
 }
-
 
 fn process_json_line(
     line: &str,
@@ -158,8 +189,17 @@ fn process_json_line(
     remove_array_numbers: bool,
 ) {
     if let Ok(json_value) = serde_json::from_str::<Value>(line) {
-        process_json_value(&json_value, frequency_maps, example_maps, grain, String::new(), column_names, remove_array_numbers, pathdepth, 0);
-
+        process_json_value(
+            &json_value,
+            frequency_maps,
+            example_maps,
+            grain,
+            String::new(),
+            column_names,
+            remove_array_numbers,
+            pathdepth,
+            0,
+        );
     }
 }
 
@@ -197,7 +237,10 @@ fn init_control_character_descriptions() -> HashMap<char, &'static str> {
     ref_map.insert('\u{001D}', "GS - Group Separator");
     ref_map.insert('\u{001E}', "RS - Record Separator");
     ref_map.insert('\u{001F}', "US - Unit Separator");
-    ref_map.insert('\u{008A}', "LINE TABULATION SET * Deprecated from Unicode 3.2, 2002");
+    ref_map.insert(
+        '\u{008A}',
+        "LINE TABULATION SET * Deprecated from Unicode 3.2, 2002",
+    );
     ref_map.insert('\u{0090}', "ERROR - Undefined CTRL Character.");
     ref_map.insert('\u{009A}', "LATIN CAPITAL S WITH CARON");
     ref_map.insert('\u{FDD0}', "Non-character code point");
@@ -278,7 +321,10 @@ struct LineReader<R: Read> {
 
 impl<R: BufRead> LineReader<R> {
     fn new(inner: R) -> Self {
-        Self { inner, buf: Vec::new() }
+        Self {
+            inner,
+            buf: Vec::new(),
+        }
     }
 
     fn read_line_self(&mut self) -> io::Result<Option<String>> {
@@ -287,7 +333,7 @@ impl<R: BufRead> LineReader<R> {
 
         if bytes_read == 0 {
             if !self.buf.is_empty() {
-                let cloned_buf = self.buf.clone(); 
+                let cloned_buf = self.buf.clone();
                 self.buf.clear();
                 let cloned_string = String::from_utf8_lossy(&cloned_buf);
                 return Ok(Some(cloned_string.into_owned()));
@@ -336,14 +382,13 @@ impl<R: BufRead> BufRead for LineReader<R> {
     }
 }
 
-
 fn character_profiling() -> Result<(), std::io::Error> {
     let ascii_control_characters = init_control_character_descriptions();
     let stdin = io::stdin();
     let mut frequency_map: HashMap<char, usize> = HashMap::new();
 
-    let file_reader: Box<dyn BufRead> = Box::new(stdin.lock()); 
-        
+    let file_reader: Box<dyn BufRead> = Box::new(stdin.lock());
+
     let mut reader = LineReader::new(file_reader);
 
     let mut line = String::new();
@@ -355,7 +400,10 @@ fn character_profiling() -> Result<(), std::io::Error> {
         line.clear();
     }
 
-    println!("{:<8}\t{:<8}\t{}\t{}", "char", "count", "description", "name");
+    println!(
+        "{:<8}\t{:<8}\t{}\t{}",
+        "char", "count", "description", "name"
+    );
     println!("{:-<8}\t{:-<8}\t{:-<15}\t{:-<15}", "", "", "", "");
 
     let mut sorted_chars: Vec<(char, usize)> = frequency_map.into_iter().collect();
@@ -363,34 +411,78 @@ fn character_profiling() -> Result<(), std::io::Error> {
 
     for (c, count) in sorted_chars {
         let character_name = unicode_names2::name(c).map_or_else(
-             || {
-                 ascii_control_characters.get(&c).map_or("UNKNOWN".to_string(), |desc| desc.to_string())
-             },
-             |name| name.to_string(),
-         );
-        println!("{:<8}\t{:<8}\t{}\t{}", c.escape_unicode(), count, c.escape_debug(), character_name);
+            || {
+                ascii_control_characters
+                    .get(&c)
+                    .map_or("UNKNOWN".to_string(), |desc| desc.to_string())
+            },
+            |name| name.to_string(),
+        );
+        println!(
+            "{:<8}\t{:<8}\t{}\t{}",
+            c.escape_unicode(),
+            count,
+            c.escape_debug(),
+            character_name
+        );
     }
     Ok(())
 }
 
-fn main() {
+fn process_json_line_as_json(json_line: &str, grain: &str) -> serde_json::Value {
+    let mut json_data: serde_json::Value = serde_json::from_str(json_line).unwrap();
 
+    fn process_json_value(json_value: &mut serde_json::Value, grain: &str) {
+        match json_value {
+            serde_json::Value::Object(ref mut map) => {
+                let mut new_entries: Vec<(String, serde_json::Value)> = Vec::new();
+                for (key, value) in map.iter_mut() {
+                    process_json_value(value, grain);
+                    if let serde_json::Value::String(s) = value {
+                        let hu_masked_value = mask_value(s, "H");
+                        let lu_masked_value = mask_value(s, "LU");
+                        let enhanced_value = json!({
+                            "raw": s,
+                            "HU": hu_masked_value,
+                            "LU": lu_masked_value
+                        });
+                        new_entries.push((key.clone(), enhanced_value));
+                    }
+                }
+                for (key, value) in new_entries {
+                    map.insert(key, value);
+                }
+            }
+            serde_json::Value::Array(ref mut values) => {
+                for value in values.iter_mut() {
+                    process_json_value(value, grain);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    process_json_value(&mut json_data, grain);
+    json_data
+}
+
+fn main() {
     let matches = App::new("Bytefreq Data Profiler")
         .version("1.0")
         .author("Andrew Morgan <minkymorgan@gmail.com>\n")
         .about("A command-line tool to generate data profiling reports based on various masking strategies.")
         .arg(
             Arg::new("grain")
-	        .short('g')
-  	        .long("grain")
-	        .value_name("GRAIN")
+            .short('g')
+            .long("grain")
+            .value_name("GRAIN")
                 .help("Sets the grain type for masking:\n\
                    'H' - High grain (A for uppercase letters, a for lowercase letters, 9 for digits)\n\
                    'L' - Low grain (repeated pattern characters will be compressed to one)\n\
                    'U' - Unicode (uses Unicode general categories for masking\n\
                    'LU'- Low grain Unicode (repeated pattern classes compressed to one\n)")
-	        .takes_value(true)
-	        .default_value("LU"),
+            .takes_value(true)
+            .default_value("LU"),
         )
         .arg(
             Arg::new("delimiter")
@@ -414,16 +506,16 @@ fn main() {
                 .default_value("tabular"),
         )
         .arg(
-	    Arg::new("report")
-		.short('r')
-		.long("report")
-		.value_name("REPORT")
-		.help("Sets the type of report to generate:\n\
-		       'DQ' - Data Quality (default)\n\
-		       'CP' - Character Profiling")
-		.takes_value(true)
-		.default_value("DQ"),
-	)
+        Arg::new("report")
+        .short('r')
+        .long("report")
+        .value_name("REPORT")
+        .help("Sets the type of report to generate:\n\
+               'DQ' - Data Quality (default)\n\
+               'CP' - Character Profiling")
+        .takes_value(true)
+        .default_value("DQ"),
+    )
         .arg(
             Arg::new("pathdepth")
                 .short('p')
@@ -442,17 +534,16 @@ fn main() {
                 .takes_value(true)
                 .default_value("false"),
         )
-	.arg(
-	    Arg::new("enhanced_output")
-		.short('e')
-		.long("enhanced-output")
-		.value_name("ENHANCED_OUTPUT")
-		.help("Output the processed tabular data in JSON format when set to true.")
-		.takes_value(true)
-		.default_value("false"),
-	)
+    .arg(
+        Arg::new("enhanced_output")
+        .short('e')
+        .long("enhanced-output")
+        .value_name("ENHANCED_OUTPUT")
+        .help("Output the processed tabular data in JSON format when set to true.")
+        .takes_value(true)
+        .default_value("false"),
+    )
         .get_matches();
-
 
     let report = matches.value_of("report").unwrap();
     let enhanced_output = matches.value_of("enhanced_output").unwrap() != "false";
@@ -464,135 +555,158 @@ fn main() {
             Err(e) => eprintln!("Error occurred during character profiling: {}", e),
         }
     } else {
+        let grain = matches.value_of("grain").unwrap();
+        let delimiter = matches.value_of("delimiter").unwrap();
+        let format = matches.value_of("format").unwrap();
 
-	    let grain = matches.value_of("grain").unwrap();
-	    let delimiter = matches.value_of("delimiter").unwrap();
-	    let format = matches.value_of("format").unwrap();
+        // new code to process tabular or json data
+        let stdin = io::stdin();
+        let mut frequency_maps: Vec<HashMap<String, usize>> = Vec::new();
+        let mut example_maps: Vec<HashMap<String, String>> = Vec::new();
+        let mut column_names: HashMap<String, usize> = HashMap::new();
+        let mut field_count_map: HashMap<usize, usize> = HashMap::new();
+        let mut record_count: usize = 0;
+        let pathdepth = matches
+            .value_of("pathdepth")
+            .unwrap()
+            .parse::<usize>()
+            .unwrap();
+        let remove_array_numbers = matches.value_of("remove_array_numbers").unwrap() != "false";
 
-	    // new code to process tabular or json data
-	    let stdin = io::stdin();
-	    let mut frequency_maps: Vec<HashMap<String, usize>> = Vec::new();
-	    let mut example_maps: Vec<HashMap<String, String>> = Vec::new();
-	    let mut column_names: HashMap<String, usize> = HashMap::new();
-            let mut field_count_map: HashMap<usize, usize> = HashMap::new();
-	    let mut record_count: usize = 0;
-            let pathdepth = matches.value_of("pathdepth").unwrap().parse::<usize>().unwrap();
-            let remove_array_numbers = matches.value_of("remove_array_numbers").unwrap() != "false";
+        for line in stdin.lock().lines().filter_map(Result::ok) {
+            if !line.is_empty() {
+                if format == "json" {
+                    if enhanced_output {
+                        let json_line = process_json_line_as_json(&line, grain);
+                        println!("{}", serde_json::to_string(&json_line).unwrap());
+                    } else {
+                        process_json_line(
+                            &line,
+                            &mut frequency_maps,
+                            &mut example_maps,
+                            grain,
+                            &mut column_names,
+                            pathdepth,
+                            remove_array_numbers,
+                        );
+                    }
+                } else {
+                    if record_count == 0 {
+                        let header = line; //+ delimiter + "Err1" + delimiter + "Err2";
+                                           // Process header for tabular data
+                        for (idx, name) in header
+                            .split(delimiter)
+                            .map(|s| s.trim().replace(" ", "_"))
+                            .enumerate()
+                        {
+                            column_names.insert(name.to_string(), idx);
+                            frequency_maps.push(HashMap::new());
+                            example_maps.push(HashMap::new());
+                        }
+                    } else {
+                        // Process tabular data
+                        if !column_names.is_empty() {
+                            let fields = line.split(delimiter).collect::<Vec<&str>>();
+                            let mut processed_fields = Vec::new();
 
-	    for line in stdin.lock().lines().filter_map(Result::ok) {
-		if !line.is_empty() {
-		    if format == "json" {
-                        process_json_line(&line, &mut frequency_maps, &mut example_maps, grain, &mut column_names, pathdepth, remove_array_numbers);
+                            for (i, field) in fields.iter().enumerate() {
+                                let column_name = match column_names.iter().find(|(_, &v)| v == i) {
+                                    Some((name, _)) => name.clone(),
+                                    None => {
+                                        let extra_column_index = i + 1 - column_names.len();
+                                        let new_name = format!("RaggedErr{}", extra_column_index);
 
-		    } else {
-			if record_count == 0 {
-                            let header = line; //+ delimiter + "Err1" + delimiter + "Err2";
-			    // Process header for tabular data
-			    for (idx, name) in header 
-				.split(delimiter)
-				.map(|s| s.trim().replace(" ", "_"))
-				.enumerate()
-			    {
-				column_names.insert(name.to_string(), idx);
-				frequency_maps.push(HashMap::new());
-				example_maps.push(HashMap::new());
-			    }
-			} else {
-                            // Process tabular data
-                            if !column_names.is_empty() {
-                                let fields = line.split(delimiter).collect::<Vec<&str>>();
-                                let mut processed_fields = Vec::new();
+                                        // Update column_names, frequency_maps, and example_maps for the new column
+                                        column_names.insert(new_name.clone(), column_names.len());
+                                        frequency_maps.push(HashMap::new());
+                                        example_maps.push(HashMap::new());
 
-                                for (i, field) in fields.iter().enumerate() {
-                                    let column_name = match column_names.iter().find(|(_, &v)| v == i) {
-                                        Some((name, _)) => name.clone(),
-                                        None => {
-                                            let extra_column_index = i + 1 - column_names.len();
-                                            let new_name = format!("RaggedErr{}", extra_column_index);
-
-                                            // Update column_names, frequency_maps, and example_maps for the new column
-                                            column_names.insert(new_name.clone(), column_names.len());
-                                            frequency_maps.push(HashMap::new());
-                                            example_maps.push(HashMap::new());
-
-                                            new_name
-                                        }
-                                    };
-                                    processed_fields.push((column_name, field));
-                                }
-
-                                let field_count = processed_fields.len();
-                                *field_count_map.entry(field_count).or_insert(0) += 1;
-
-                                for (name, value) in &processed_fields {
-                                    let masked_value = mask_value(value, grain);
-
-                                    if let Some(idx) = column_names.get(name) {
-                                        let count = frequency_maps[*idx].entry(masked_value.clone()).or_insert(0);
-                                        *count += 1;
-
-                                        // Reservoir sampling
-                                        let mut rng = thread_rng();
-                                        if rng.gen::<f64>() < 1.0 / (*count as f64) {
-                                            example_maps[*idx].insert(masked_value.clone(), value.to_string());
-                                        }
-                                    } else {
-                                        // Handle the case when the column name is not found in the HashMap
-                                        println!("Warning: Column name not found in the HashMap: {}", name);
+                                        new_name
                                     }
+                                };
+                                processed_fields.push((column_name, field));
+                            }
+
+                            let field_count = processed_fields.len();
+                            *field_count_map.entry(field_count).or_insert(0) += 1;
+
+                            for (name, value) in &processed_fields {
+                                let masked_value = mask_value(value, grain);
+
+                                if let Some(idx) = column_names.get(name) {
+                                    let count = frequency_maps[*idx]
+                                        .entry(masked_value.clone())
+                                        .or_insert(0);
+                                    *count += 1;
+
+                                    // Reservoir sampling
+                                    let mut rng = thread_rng();
+                                    if rng.gen::<f64>() < 1.0 / (*count as f64) {
+                                        example_maps[*idx]
+                                            .insert(masked_value.clone(), value.to_string());
+                                    }
+                                } else {
+                                    // Handle the case when the column name is not found in the HashMap
+                                    println!(
+                                        "Warning: Column name not found in the HashMap: {}",
+                                        name
+                                    );
                                 }
                             }
 
-                            // Output the processed tabular line in JSON format if the json_output flag is set to true
-			    if enhanced_output {
-			        let json_line = process_tabular_line_as_json(&line, delimiter, &column_names);
-				println!("{}", serde_json::to_string(&json_line).unwrap());
-			    }
-			}   //end of else
-		    }
-		    record_count += 1;
-		}
-	    }
-
-	    let now = Local::now();
-	    let now_string = now.format("%Y%m%d %H:%M:%S").to_string();
-	    println!();
-	    println!("Data Profiling Report: {}", now_string);
-	    println!("Examined rows: {}", record_count);
-	    println!();
-            println!("FieldsPerLine:"); 
-            // Print the field count map
-                for (field_count, frequency) in &field_count_map {
-                    println!("{} fields: {} rows", field_count, frequency);
+                            if enhanced_output {
+                                let json_line = process_tabular_line_as_json(&processed_fields);
+                                println!("{}", serde_json::to_string(&json_line).unwrap());
+                            }
+                        }
+                    } //end of else
                 }
- 
+                record_count += 1;
+            }
+        }
+
+        // Output the processed tabular line in JSON format if the enhanced_output flag is set to true
+
+        if enhanced_output == False {
+            let now = Local::now();
+            let now_string = now.format("%Y%m%d %H:%M:%S").to_string();
             println!();
-	    println!(
-		"{:<32}\t{:<8}\t{:<8}\t{:<32}",
-		"column", "count", "pattern", "example"
-	    );
-	    println!("{:-<32}\t{:-<8}\t{:-<8}\t{:-<32}", "", "", "", "");
+            println!("Data Profiling Report: {}", now_string);
+            println!("Examined rows: {}", record_count);
+            println!();
+            println!("FieldsPerLine:");
+            // Print the field count map
+            for (field_count, frequency) in &field_count_map {
+                println!("{} fields: {} rows", field_count, frequency);
+            }
 
-	    for (name, idx) in column_names.iter() {
-		if let Some(frequency_map) = frequency_maps.get(*idx) {
-		    let mut column_counts = frequency_map
-			.iter()
-			.map(|(value, count)| (value, count))
-			.collect::<Vec<(&String, &usize)>>();
-	    
-		    column_counts.sort_unstable_by(|a, b| b.1.cmp(a.1));
-	    
-		    for (value, count) in column_counts {
-			let empty_string = "".to_string();
-			let example = example_maps[*idx].get(value).unwrap_or(&empty_string);
-	    
-			println!(
-			    "col_{:05}_{}\t{:<8}\t{:<8}\t{:<32}",
-			    idx, name, count, value, example
-			);
-		    }
-		}
-	    }
-    }    
+            println!();
+            println!(
+                "{:<32}\t{:<8}\t{:<8}\t{:<32}",
+                "column", "count", "pattern", "example"
+            );
+            println!("{:-<32}\t{:-<8}\t{:-<8}\t{:-<32}", "", "", "", "");
+
+            for (name, idx) in column_names.iter() {
+                if let Some(frequency_map) = frequency_maps.get(*idx) {
+                    let mut column_counts = frequency_map
+                        .iter()
+                        .map(|(value, count)| (value, count))
+                        .collect::<Vec<(&String, &usize)>>();
+
+                    column_counts.sort_unstable_by(|a, b| b.1.cmp(a.1));
+
+                    for (value, count) in column_counts {
+                        let empty_string = "".to_string();
+                        let example = example_maps[*idx].get(value).unwrap_or(&empty_string);
+
+                        println!(
+                            "col_{:05}_{}\t{:<8}\t{:<8}\t{:<32}",
+                            idx, name, count, value, example
+                        );
+                    }
+                }
+            }
+        } //End not enhanced_output
+    }
 } // end of main
-
