@@ -668,7 +668,7 @@ fn main() {
 
         // Output the processed tabular line in JSON format if the enhanced_output flag is set to true
 
-        if enhanced_output == False {
+        if enhanced_output == false {
             let now = Local::now();
             let now_string = now.format("%Y%m%d %H:%M:%S").to_string();
             println!();
