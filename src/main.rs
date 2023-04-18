@@ -440,7 +440,7 @@ fn process_json_line_as_json(json_line: &str, grain: &str) -> serde_json::Value 
                 for (key, value) in map.iter_mut() {
                     process_json_value(value, grain);
                     if let serde_json::Value::String(s) = value {
-                        let hu_masked_value = mask_value(s, "H");
+                        let hu_masked_value = mask_value(s, "HU");
                         let lu_masked_value = mask_value(s, "LU");
                         let enhanced_value = json!({
                             "raw": s,
