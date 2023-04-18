@@ -165,7 +165,7 @@ fn process_tabular_line_as_json(processed_fields: &Vec<(String, String)>) -> ser
     let mut json_line: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
 
     for (column_name, value) in processed_fields {
-        let hu_masked_value = mask_value(value, "H");
+        let hu_masked_value = mask_value(value, "HU");
         let lu_masked_value = mask_value(value, "LU");
 
         let enhanced_value = json!({
