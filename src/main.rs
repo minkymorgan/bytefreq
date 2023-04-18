@@ -654,18 +654,21 @@ fn main() {
                                     );
                                 }
                             }
-
+                            // collect tabular data to enhance, enhance, print
                             if enhanced_output {
-
-                                let processed_fields: Vec<(String, String)> = column_names.iter().map(|column_name| {
-                                    let value = line_values[column_name.1].to_string();
+                                let processed_fields: Vec<(String, &str)> = column_names.iter().map(|column_name| {
+                                    let value = &line_values[column_name.1];
                                     (column_name.0.clone(), value)
                                 }).collect();
 
+                                let processed_fields_string: Vec<(String, String)> = processed_fields
+                                    .iter()
+                                    .map(|(column_name, value)| (column_name.clone(), value.to_string()))
+                                    .collect();
 
-                                let json_line = process_tabular_line_as_json(&processed_fields);
+                                let json_line = process_tabular_line_as_json(&processed_fields_string);
                                 println!("{}", serde_json::to_string(&json_line).unwrap());
-                            }
+                            } 
                         }
                     } //end of else
                 }
