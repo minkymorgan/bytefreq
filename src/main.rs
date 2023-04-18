@@ -161,7 +161,7 @@ fn process_json_value(
 }
 
 // Function to process a tabular line and convert it into an enhanced JSON object
-fn process_tabular_line_as_json(processed_fields: &Vec<(String, &str)>) -> serde_json::Value {
+fn process_tabular_line_as_json(processed_fields: &Vec<(String, String)>) -> serde_json::Value {
     let mut json_line: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
 
     for (column_name, value) in processed_fields {
@@ -656,6 +656,13 @@ fn main() {
                             }
 
                             if enhanced_output {
+
+                                let processed_fields: Vec<(String, String)> = column_names.iter().map(|column_name| {
+                                    let value = line_values[column_name.1].to_string();
+                                    (column_name.0.clone(), value)
+                                }).collect();
+
+
                                 let json_line = process_tabular_line_as_json(&processed_fields);
                                 println!("{}", serde_json::to_string(&json_line).unwrap());
                             }
