@@ -29,10 +29,16 @@ pub fn poss_longitude(value: &str) -> bool {
 pub fn execute_assertions(raw: &str, lu: &str, hu: &str) -> serde_json::Value {
     let mut assertions: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
 
+    // Remove double quotes from the input strings
+    let raw = raw.trim_matches('"');
+    let lu = lu.trim_matches('"');
+    let hu = hu.trim_matches('"');
+
+
     if lu == "9" || lu == "9.9" {
         assertions.insert("is_numeric".to_string(), json!(is_numeric(raw)));
-        assertions.insert("poss_latitude".to_string(), json!(poss_latitude(raw)));
-        assertions.insert("poss_longitude".to_string(), json!(poss_longitude(raw)));
+        //assertions.insert("poss_latitude".to_string(), json!(poss_latitude(raw)));
+        //assertions.insert("poss_longitude".to_string(), json!(poss_longitude(raw)));
     }
 
     // Add more assertion checks based on different LU/HU patterns here

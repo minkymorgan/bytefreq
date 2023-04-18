@@ -593,6 +593,7 @@ fn main() {
                 if format == "json" {
                     if enhanced_output {
                         let json_line = process_json_line_as_json(&line, grain);
+                        //let enhanced_json_line = process_data(&json_line);
                         println!("{}", serde_json::to_string(&json_line).unwrap());
                     } else {
                         process_json_line(
@@ -677,6 +678,7 @@ fn main() {
                                 }).collect();
 
                                 let json_line = process_tabular_line_as_json(&processed_fields);
+                                //let enhanced_json_line = process_data(&json_line);
                                 println!("{}", serde_json::to_string(&json_line).unwrap());
                             }
                         }
