@@ -7,7 +7,8 @@ use std::io::{self, BufRead, Read};
 use unic::ucd::GeneralCategory as Category;
 use unicode_names2;
 use serde_json::json;
-use crate::rules::enhancer::process_data;
+use bytefreq_rs::rules::enhancer::process_data;
+
 
 // this is a highgrain Mask that works for unicode data!
 fn high_grain_unicode_mask(c: char) -> char {
@@ -165,10 +166,20 @@ fn process_tabular_line_as_json(processed_fields: &Vec<(String, String)>) -> ser
     let mut json_line: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
 
     for (column_name, value) in processed_fields {
+
+
         let hu_masked_value = mask_value(value, "HU");
         let lu_masked_value = mask_value(value, "LU");
 
-        let assertions = bytefreq-rs::rules::enhancer::process_data(value, lu_masked_value, hu_masked_value);
+        //let assertions = bytefreq-rs::rules::enhancer::process_data(value, lu_masked_value, hu_masked_value);
+
+        let data = json!({
+            "raw": value,
+            "LU": lu_masked_value,
+            "HU": hu_masked_value
+        });
+
+        let assertions = process_data(&data);
 
         let enhanced_value = json!({
             "raw": value,

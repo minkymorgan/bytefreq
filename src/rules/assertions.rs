@@ -1,9 +1,9 @@
 use regex::Regex;
-use std::collections::HashMap;
+use serde_json::json;
 
 // this is a library of assertion rules, that are matched to triples arriving (raw, HU, LU)
 
-pub fn poss_valid_UK_Postcode(value: &str) -> bool {
+pub fn poss_valid_uk_postcode(value: &str) -> bool {
     let re = Regex::new(r"^(([A-Z][A-HJ-Y]?\d[A-Z\d]?|ASCN|STHL|TDCU|BBND|[BFS]IQQ|PCRN|TKCA) ?\d[A-Z]{2}|BFPO ?\d{1,4}|(KY\d|MSR|VG|AI)[ -]?\d{4}|[A-Z]{2} ?\d{2}|GE ?CX|GIR ?0A{2}|SAN ?TA1)$").unwrap();
     re.is_match(value)
 }
@@ -38,7 +38,7 @@ pub fn execute_assertions(raw: &str, lu: &str, hu: &str) -> serde_json::Value {
     // Add more assertion checks based on different LU/HU patterns here
 
     if hu == "A9 9A" || hu == "A9A 9A " {
-        assertions.insert("poss_valid_UK_Postcode".to_string(), json!(poss_valid_UK_Postcode(raw)));
+        assertions.insert("poss_valid_UK_Postcode".to_string(), json!(poss_valid_uk_postcode(raw)));
     }
 
 
