@@ -657,7 +657,7 @@ fn main() {
                             // collect tabular data to enhance, enhance, print
                             if enhanced_output {
                                 let processed_fields: Vec<(String, &str)> = column_names.iter().map(|column_name| {
-                                    let value = &line_values[column_name.1];
+                                    let value = &fields[column_name.1];
                                     (column_name.0.clone(), value)
                                 }).collect();
 
