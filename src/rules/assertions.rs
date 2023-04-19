@@ -1,8 +1,16 @@
 use regex::Regex;
 use serde_json::json;
 use chrono::{NaiveDate, Utc};
+use std::convert::TryInto;
 
 // this is a library of assertion rules, that are matched to triples arriving (raw, HU, LU)
+
+
+fn string_length(value: &str) -> i32 {
+    let char_count = value.chars().count();
+    return char_count.try_into().unwrap(); 
+}
+
 
 fn parse_date(value: &str) -> Option<NaiveDate> {
     let formats = ["%d-%m-%Y", "%d/%m/%Y"];
@@ -57,6 +65,7 @@ pub fn execute_assertions(field_name: &str, raw: &str, lu: &str, hu: &str) -> se
     let lu = lu.trim_matches('"');
     let hu = hu.trim_matches('"');
 
+    assertions.insert("string_length".to_string(), json!(string_length(raw)));
 
     if lu == "9" || lu == "9.9" {
         assertions.insert("is_numeric".to_string(), json!(is_numeric(raw)));
