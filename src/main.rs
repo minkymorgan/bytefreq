@@ -174,9 +174,8 @@ fn process_tabular_line_as_json(processed_fields: &Vec<(String, String)>) -> ser
 
     for (column_name, value) in processed_fields {
 
-
-        let hu_masked_value = mask_value(value, "HU");
-        let lu_masked_value = mask_value(value, "LU");
+        let hu_masked_value = mask_value(value, "HU", column_name);
+        let lu_masked_value = mask_value(value, "LU", column_name);
 
         //let assertions = bytefreq-rs::rules::enhancer::process_data(column_name, value, lu_masked_value, hu_masked_value);
 
@@ -461,8 +460,8 @@ fn process_json_line_as_json(json_line: &str, grain: &str) -> serde_json::Value 
                 for (key, value) in map.iter_mut() {
                     process_json_value(value, grain);
                     if let serde_json::Value::String(s) = value {
-                        let hu_masked_value = mask_value(s, "HU");
-                        let lu_masked_value = mask_value(s, "LU");
+                        let hu_masked_value = mask_value(s, "HU", key);
+                        let lu_masked_value = mask_value(s, "LU", key);
                         let enhanced_value = json!({
                             "raw": s,
                             "HU": hu_masked_value,
@@ -654,7 +653,7 @@ fn main() {
                             *field_count_map.entry(field_count).or_insert(0) += 1;
 
                             for (name, value) in &processed_fields {
-                                let masked_value = mask_value(value, grain);
+                                let masked_value = mask_value(value, grain, &name);
 
                                 if let Some(idx) = column_names.get(name) {
                                     let count = frequency_maps[*idx]
