@@ -8,7 +8,6 @@ use unic::ucd::GeneralCategory as Category;
 use unicode_names2;
 use serde_json::json;
 use bytefreq_rs::rules::enhancer::process_data;
-use std::cmp::max;
 
 pub fn identity_mask(value: &str) -> String {
     value.to_string()
@@ -698,81 +697,49 @@ fn main() {
         // Output the processed tabular line in JSON format if the enhanced_output flag is set to true
 
         if enhanced_output == false {
-	    let now = Local::now();
-	    let now_string = now.format("%Y%m%d %H:%M:%S").to_string();
-	    println!();
-	    println!("Data Profiling Report: {}", now_string);
-	    println!("Examined rows: {}", record_count);
-	    println!();
-	    println!("FieldsPerLine:");
+            let now = Local::now();
+            let now_string = now.format("%Y%m%d %H:%M:%S").to_string();
+            println!();
+            println!("Data Profiling Report: {}", now_string);
+            println!("Examined rows: {}", record_count);
+            println!();
+            println!("FieldsPerLine:");
+            // Print the field count map
+            for (field_count, frequency) in &field_count_map {
+                println!("{} fields: {} rows", field_count, frequency);
+            }
 
-	    for (field_count, frequency) in &field_count_map {
-		println!("{} fields: {} rows", field_count, frequency);
-	    }
+            println!();
+            println!(
+                "{:<32}\t{:<8}\t{:<8}\t{:<32}",
+                "column", "count", "pattern", "example"
+            );
+            println!("{:-<32}\t{:-<8}\t{:-<8}\t{:-<32}", "", "", "", "");
 
-	    println!();
-	    println!("{:<32}\t{:<8}\t{:<8}\t{:<32}", "column", "count", "pattern", "example");
-	    println!("{:-<32}\t{:-<8}\t{:-<8}\t{:-<32}", "", "", "", "");
-
-            // Revert the type of sorted_column_names to Vec<(&String, &usize)>
+            // sort the reporting lines
             let mut sorted_column_names: Vec<(&String, &usize)> = column_names.iter().collect();
             sorted_column_names.sort_unstable_by_key(|(_, idx)| **idx);
 
-	    let mut max_lengths = vec![0; 4];
+            for (name, idx) in sorted_column_names { 
+                if let Some(frequency_map) = frequency_maps.get(*idx) {
+                    let mut column_counts = frequency_map
+                        .iter()
+                        .map(|(value, count)| (value, count))
+                        .collect::<Vec<(&String, &usize)>>();
 
-            for (index, idx) in (0..column_count).enumerate() {
-	    //for (name, idx) in &sorted_column_names {
-                if let Some(frequency_map) = frequency_maps.get(index) {
+                    column_counts.sort_unstable_by(|a, b| b.1.cmp(a.1));
 
-		//if let Some(frequency_map) = frequency_maps.get(*idx) {
-		    let mut column_counts = frequency_map
-			.iter()
-			.map(|(value, count)| (value, count))
-			.collect::<Vec<(&String, &usize)>>();
+                    for (value, count) in column_counts {
+                        let empty_string = "".to_string();
+                        let example = example_maps[*idx].get(value).unwrap_or(&empty_string);
 
-		    column_counts.sort_unstable_by(|a, b| b.1.cmp(a.1));
-
-		    for (value, count) in &column_counts {
-			let empty_string = "".to_string();
-			//let example = example_maps[*idx].get(value).unwrap_or(&empty_string);
-                        let example = example_maps[index].get(&value.as_str()).unwrap_or(&empty_string);
-
-			max_lengths[0] = max(max_lengths[0], format!("col_{:05}_{}", idx, name).len());
-			max_lengths[1] = max(max_lengths[1], count.to_string().len());
-			max_lengths[2] = max(max_lengths[2], value.len());
-			max_lengths[3] = max(max_lengths[3], example.len());
-		    }
-		}
-	    }
-
-	    for (name, idx) in sorted_column_names {
-		if let Some(frequency_map) = frequency_maps.get(*idx) {
-		    let mut column_counts = frequency_map
-			.iter()
-			.map(|(value, count)| (value, count))
-			.collect::<Vec<(&String, &usize)>>();
-
-		    column_counts.sort_unstable_by(|a, b| b.1.cmp(a.1));
-
-		    for (value, count) in column_counts {
-			let empty_string = "".to_string();
-			let example = example_maps[*idx].get(value).unwrap_or(&empty_string);
-
-                         println!(
-                             "{}",
-                             format!(
-                                 "{:<width$}\t{:<width$}\t{:<width$}\t{:<width$}",
-                                 format!("col_{:05}_{}", idx, name),
-                                 count,
-                                 value,
-                                 example,
-                                 width = max_lengths[0]
-                             )
-                         );
-
-		    }
-		}
-	    }
-	} //End not enhanced_output
+                        println!(
+                            "col_{:05}_{}\t{:<8}\t{:<8}\t{:<32}",
+                            idx, name, count, value, example
+                        );
+                    }
+                }
+            }
+        } //End not enhanced_output
     }
 } // end of main
