@@ -9,6 +9,9 @@ use unicode_names2;
 use serde_json::json;
 use bytefreq_rs::rules::enhancer::process_data;
 
+pub fn identity_mask(value: &str) -> String {
+    value.to_string()
+}
 
 // this is a highgrain Mask that works for unicode data!
 fn high_grain_unicode_mask(c: char) -> char {
@@ -69,17 +72,21 @@ fn low_grain_mask(value: &str) -> String {
     }
 }
 
-fn mask_value(value: &str, grain: &str) -> String {
-    match grain {
-        "H" => high_grain_mask(value),
-        "L" => low_grain_mask(value),
-        "LU" => low_grain_mask(
-            &value
-                .chars()
-                .map(|c| high_grain_unicode_mask(c))
-                .collect::<String>(),
-        ),
-        _u => value.chars().map(|c| high_grain_unicode_mask(c)).collect(),
+fn mask_value(value: &str, grain: &str, field_name: &str) -> String {
+    if field_name.contains(".Rules.") {
+        identity_mask(value)
+    } else {
+        match grain {
+            "H" => high_grain_mask(value),
+            "L" => low_grain_mask(value),
+            "LU" => low_grain_mask(
+                &value
+                    .chars()
+                    .map(|c| high_grain_unicode_mask(c))
+                    .collect::<String>(),
+            ),
+            _u => value.chars().map(|c| high_grain_unicode_mask(c)).collect(),
+        }
     }
 }
 
@@ -139,7 +146,7 @@ fn process_json_value(
         }
         _ => {
             let value_str = value.to_string();
-            let masked_value = mask_value(&value_str, grain);
+            let masked_value = mask_value(&value_str, grain, &prefix);
             let idx = column_names.entry(prefix.clone()).or_insert_with(|| {
                 let new_idx = frequency_maps.len();
                 frequency_maps.push(HashMap::new());
