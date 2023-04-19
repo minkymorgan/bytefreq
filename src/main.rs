@@ -716,7 +716,11 @@ fn main() {
             );
             println!("{:-<32}\t{:-<8}\t{:-<8}\t{:-<32}", "", "", "", "");
 
-            for (name, idx) in column_names.iter() {
+            // sort the reporting lines
+            let mut sorted_column_names: Vec<(&String, &usize)> = column_names.iter().collect();
+            sorted_column_names.sort_unstable_by_key(|(_, idx)| **idx);
+
+            for (name, idx) in sorted_column_names { 
                 if let Some(frequency_map) = frequency_maps.get(*idx) {
                     let mut column_counts = frequency_map
                         .iter()
