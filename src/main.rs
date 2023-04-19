@@ -171,7 +171,7 @@ fn process_tabular_line_as_json(processed_fields: &Vec<(String, String)>) -> ser
         let hu_masked_value = mask_value(value, "HU");
         let lu_masked_value = mask_value(value, "LU");
 
-        //let assertions = bytefreq-rs::rules::enhancer::process_data(value, lu_masked_value, hu_masked_value);
+        //let assertions = bytefreq-rs::rules::enhancer::process_data(column_name, value, lu_masked_value, hu_masked_value);
 
         let data = json!({
             "raw": value,
@@ -179,7 +179,7 @@ fn process_tabular_line_as_json(processed_fields: &Vec<(String, String)>) -> ser
             "HU": hu_masked_value
         });
 
-        let assertions = process_data(&data);
+        let assertions = process_data(&column_name, &data);
 
         let enhanced_value = json!({
             "raw": value,

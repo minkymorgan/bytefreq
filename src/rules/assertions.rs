@@ -1,9 +1,32 @@
 use regex::Regex;
 use serde_json::json;
+use chrono::{NaiveDate, Utc};
 
 // this is a library of assertion rules, that are matched to triples arriving (raw, HU, LU)
 
-pub fn poss_valid_uk_postcode(value: &str) -> bool {
+fn parse_date(value: &str) -> Option<NaiveDate> {
+    let formats = ["%d-%m-%Y", "%d/%m/%Y"];
+
+    for format in &formats {
+        if let Ok(parsed_date) = NaiveDate::parse_from_str(value, format) {
+            return Some(parsed_date);
+        }
+    }
+
+    None
+}
+
+fn is_sensible_dob(value: &str) -> bool {
+    if let Some(parsed_date) = parse_date(value) {
+        let now = Utc::now().naive_utc().date();
+        let min_dob = now - chrono::Duration::weeks(127 * 52);
+
+        return parsed_date >= min_dob && parsed_date <= now;
+    }
+    false
+}
+
+pub fn is_uk_postcode(value: &str) -> bool {
     let re = Regex::new(r"^(([A-Z][A-HJ-Y]?\d[A-Z\d]?|ASCN|STHL|TDCU|BBND|[BFS]IQQ|PCRN|TKCA) ?\d[A-Z]{2}|BFPO ?\d{1,4}|(KY\d|MSR|VG|AI)[ -]?\d{4}|[A-Z]{2} ?\d{2}|GE ?CX|GIR ?0A{2}|SAN ?TA1)$").unwrap();
     re.is_match(value)
 }
@@ -26,7 +49,7 @@ pub fn poss_longitude(value: &str) -> bool {
     false
 }
 
-pub fn execute_assertions(raw: &str, lu: &str, hu: &str) -> serde_json::Value {
+pub fn execute_assertions(field_name: &str, raw: &str, lu: &str, hu: &str) -> serde_json::Value {
     let mut assertions: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
 
     // Remove double quotes from the input strings
@@ -43,11 +66,18 @@ pub fn execute_assertions(raw: &str, lu: &str, hu: &str) -> serde_json::Value {
 
     // Add more assertion checks based on different LU/HU patterns here
 
-    if hu == "A9 9A" || hu == "A9A 9A " {
-        assertions.insert("poss_valid_UK_Postcode".to_string(), json!(poss_valid_uk_postcode(raw)));
+    if lu == "A9 9A" || hu == "A9A 9A " {
+        assertions.insert("is_uk_postcode".to_string(), json!(is_uk_postcode(raw)));
     }
 
+    if lu == "9_9_9" {
+         assertions.insert("std_date".to_string(), json!(parse_date(raw)));
+    }
 
+    // check DOB
+    if hu == "99_99_9999" && field_name.to_lowercase().contains("dob") {
+        assertions.insert("is_sensible_dob".to_string(), json!(is_sensible_dob(raw)));
+    }
 
     serde_json::Value::Object(assertions)
 }
