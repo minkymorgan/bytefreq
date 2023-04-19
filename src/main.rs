@@ -460,12 +460,28 @@ fn process_json_line_as_json(json_line: &str, grain: &str) -> serde_json::Value 
                 for (key, value) in map.iter_mut() {
                     process_json_value(value, grain);
                     if let serde_json::Value::String(s) = value {
+
                         let hu_masked_value = mask_value(s, "HU", key);
                         let lu_masked_value = mask_value(s, "LU", key);
-                        let enhanced_value = json!({
+
+                        // let assertions = process_data(key, &serde_json::Value::String(s.clone()));
+                        // let assertions = process_data(key, &serde_json::Value::String(s.clone())).unwrap_or_else(serde_json::Value::Null);
+                        // let assertions = process_data(key, &serde_json::Value::String(s.clone())).unwrap_or(serde_json::Value::Null);
+                        // let assertions = process_data(key, &serde_json::Value::String(s.clone())).unwrap_or(serde_json::Value::Null);
+                        //let assertions = process_data(key, &serde_json::Value::String(s.clone())).unwrap_or(serde_json::Value::Null);
+                        
+                        let temp_data = json!({
                             "raw": s,
                             "HU": hu_masked_value,
                             "LU": lu_masked_value
+                        });
+                        let assertions = process_data(key, &temp_data).unwrap_or(serde_json::Value::Null);
+
+                        let enhanced_value = json!({
+                            "raw": s,
+                            "HU": hu_masked_value,
+                            "LU": lu_masked_value,
+                            "Rules": assertions
                         });
                         new_entries.push((key.clone(), enhanced_value));
                     }

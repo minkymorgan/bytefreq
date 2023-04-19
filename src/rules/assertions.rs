@@ -1,14 +1,12 @@
 use regex::Regex;
 use serde_json::json;
 use chrono::{NaiveDate, Utc};
-use std::convert::TryInto;
 
 // this is a library of assertion rules, that are matched to triples arriving (raw, HU, LU)
 
-
 fn string_length(value: &str) -> i32 {
     let char_count = value.chars().count();
-    return char_count.try_into().unwrap(); 
+    return char_count as i32; 
 }
 
 
@@ -75,7 +73,7 @@ pub fn execute_assertions(field_name: &str, raw: &str, lu: &str, hu: &str) -> se
 
     // Add more assertion checks based on different LU/HU patterns here
 
-    if lu == "A9 9A" || hu == "A9A 9A " {
+    if lu == "A9 9A" || hu == "A9A 9A" {
         assertions.insert("is_uk_postcode".to_string(), json!(is_uk_postcode(raw)));
     }
 
