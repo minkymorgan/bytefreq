@@ -4,6 +4,44 @@ use chrono::{NaiveDate, Utc};
 
 // this is a library of assertion rules, that are matched to triples arriving (raw, HU, LU)
 
+fn get_possible_countries(column_name: &str, raw: &str, hu: &str, lu: &str) -> Vec<String> {
+    let mut possible_countries: Vec<String> = Vec::new();
+
+    match hu {
+        "9999" => {
+            possible_countries.extend(vec!["AT", "BE", "BG", "CH", "CY", "CZ", "DK", "EE", "FI", "GR", "HU", "IE", "LT", "LU", "LV", "MT", "NL", "NO", "PL", "PT", "RO", "SE", "SI", "SK"].into_iter().map(|s| s.to_string()));
+        }
+        "99999" => {
+            possible_countries.extend(vec!["DE", "ES", "FR", "HR", "IT"].into_iter().map(|s| s.to_string()));
+        }
+        "999-99" => {
+            possible_countries.extend(vec!["SE"].into_iter().map(|s| s.to_string()));
+        }
+        "AAA-9999" => {
+            possible_countries.extend(vec!["IE"].into_iter().map(|s| s.to_string()));
+        }
+        _ => {}
+    }
+
+    // Additional country-specific checks
+    if lu == "9-9999" && raw.starts_with("1") {
+        possible_countries.retain(|country| country == "DE");
+    } else if hu == "9999" && raw.starts_with("0") {
+        possible_countries.retain(|country| country == "NL");
+    } else if hu == "99999" && raw.starts_with("9") {
+        possible_countries.retain(|country| country == "FR");
+    }
+
+    // UK postal code patterns
+    let uk_patterns = vec!["A9 9A", "A9A 9A", "A9A"];
+    if uk_patterns.contains(&lu) {
+        possible_countries.push("UK".to_string());
+    }
+
+    possible_countries
+}
+
+
 fn string_length(value: &str) -> i32 {
     let char_count = value.chars().count();
     return char_count as i32; 
@@ -65,6 +103,16 @@ pub fn execute_assertions(field_name: &str, raw: &str, lu: &str, hu: &str) -> se
 
     assertions.insert("string_length".to_string(), json!(string_length(raw)));
 
+    // sniff potential postal country
+    let target_substring = "post"; 
+    if field_name.to_lowercase().contains(&target_substring.to_lowercase()) {
+        let possible_countries = get_possible_countries(field_name, raw, hu, lu);
+        if !possible_countries.is_empty() {
+            assertions.insert("poss_postal_country".to_string(), json!(possible_countries));
+        }
+    }
+
+
     if lu == "9" || lu == "9.9" {
         assertions.insert("is_numeric".to_string(), json!(is_numeric(raw)));
         //assertions.insert("poss_latitude".to_string(), json!(poss_latitude(raw)));
@@ -85,6 +133,8 @@ pub fn execute_assertions(field_name: &str, raw: &str, lu: &str, hu: &str) -> se
     if hu == "99_99_9999" && field_name.to_lowercase().contains("dob") {
         assertions.insert("is_sensible_dob".to_string(), json!(is_sensible_dob(raw)));
     }
+
+    
 
     serde_json::Value::Object(assertions)
 }
