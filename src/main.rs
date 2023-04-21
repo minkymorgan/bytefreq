@@ -9,7 +9,6 @@ use unicode_names2;
 use serde_json::json;
 use bytefreq_rs::rules::enhancer::process_data;
 use rayon::prelude::*;
-use std::sync::{Arc, Mutex};
 
 pub fn identity_mask(value: &str) -> String {
     value.to_string()
@@ -172,8 +171,7 @@ fn process_json_value(
 
 // Enhanced for Performance using multithreading via rayon
 // Function to process a tabular line and convert it into an enhanced JSON object
-// updated to include memoisation
-fn process_tabular_line_as_json(processed_fields: &[(String, String)], memo: &Arc<Mutex<HashMap<String, (String, String)>>>) -> serde_json::Value {    
+fn process_tabular_line_as_json(processed_fields: &Vec<(String, String)>) -> serde_json::Value {
     let json_line: std::collections::HashMap<String, serde_json::Value> = processed_fields
         .par_iter()
         .map(|(column_name, value)| {
@@ -186,10 +184,7 @@ fn process_tabular_line_as_json(processed_fields: &[(String, String)], memo: &Ar
                 "HU": hu_masked_value
             });
 
-            let assertions = {
-                let mut memo_guard = memo.lock().unwrap(); 
-                process_data(&column_name, &data, &mut memo_guard);
-            };
+            let assertions = process_data(&column_name, &data);
 
             let enhanced_value = json!({
                 "raw": value,
@@ -456,15 +451,16 @@ fn character_profiling() -> Result<(), std::io::Error> {
     Ok(())
 }
 
-fn process_json_line_as_json(line: &str, grain: &str, memo: &Arc<Mutex<HashMap<String, (String, String)>>>) -> serde_json::Value {
-    let mut json_data: serde_json::Value = serde_json::from_str(line).unwrap();
+// updated for parallel processing with rayon:
+fn process_json_line_as_json(json_line: &str, grain: &str) -> serde_json::Value {
+    let mut json_data: serde_json::Value = serde_json::from_str(json_line).unwrap();
 
-    fn process_json_value(json_value: &mut serde_json::Value, grain: &str, memo: &Arc<Mutex<HashMap<String, (String, String)>>>) {
+    fn process_json_value(json_value: &mut serde_json::Value, grain: &str) {
         match json_value {
             serde_json::Value::Object(ref mut map) => {
                 let mut new_entries: Vec<(String, serde_json::Value)> = Vec::new();
                 for (key, value) in map.iter_mut() {
-                    process_json_value(value, grain, memo);
+                    process_json_value(value, grain);
                     if let serde_json::Value::String(s) = value {
                         let hu_masked_value = mask_value(s, "HU", key);
                         let lu_masked_value = mask_value(s, "LU", key);
@@ -474,11 +470,7 @@ fn process_json_line_as_json(line: &str, grain: &str, memo: &Arc<Mutex<HashMap<S
                             "HU": hu_masked_value,
                             "LU": lu_masked_value
                         });
-
-                        let assertions = {
-                            let mut memo_guard = memo.lock().unwrap();
-                            process_data(key, &temp_data, &mut *memo_guard).unwrap_or(serde_json::Value::Null);
-                        };
+                        let assertions = process_data(key, &temp_data).unwrap_or(serde_json::Value::Null);
 
                         let enhanced_value = json!({
                             "raw": s,
@@ -494,16 +486,16 @@ fn process_json_line_as_json(line: &str, grain: &str, memo: &Arc<Mutex<HashMap<S
                 }
             }
             serde_json::Value::Array(ref mut values) => {
-                values.par_iter_mut().for_each({
-                    move |value| process_json_value(value, grain, memo)
-                });
+                values.par_iter_mut().for_each(|value| process_json_value(value, grain));
             }
             _ => {}
         }
     }
-    process_json_value(&mut json_data, grain, memo);
+
+    process_json_value(&mut json_data, grain);
     json_data
 }
+
 
 fn main() {
     let matches = App::new("Bytefreq Data Profiler")
@@ -612,15 +604,11 @@ fn main() {
             .unwrap();
         let remove_array_numbers = matches.value_of("remove_array_numbers").unwrap() != "false";
 
-        // define a memo for us to memoize common values in our lookups
-       // let memo: Arc<Mutex<HashMap<String, (String, String)>>> = Arc::new(Mutex::new(HashMap::new()));
-        let memo: Arc<Mutex<HashMap<String, (String, String)>>> = Arc::new(Mutex::new(HashMap::new()));
-
         for line in stdin.lock().lines().filter_map(Result::ok) {
             if !line.is_empty() {
                 if format == "json" {
                     if enhanced_output {
-                        let json_line = process_json_line_as_json(&line, grain, &memo);
+                        let json_line = process_json_line_as_json(&line, grain);
                         //let enhanced_json_line = process_data(&json_line);
                         println!("{}", serde_json::to_string(&json_line).unwrap());
                     } else {
@@ -649,7 +637,6 @@ fn main() {
                         }
                     } else {
                         // Process tabular data
-
                         if !column_names.is_empty() {
                             let fields = line.split(delimiter).collect::<Vec<&str>>();
                             let mut processed_fields = Vec::new();
@@ -706,7 +693,7 @@ fn main() {
                                     (column_name.0.clone(), value)
                                 }).collect();
 
-                                let json_line = process_tabular_line_as_json(&processed_fields,  &memo);
+                                let json_line = process_tabular_line_as_json(&processed_fields);
                                 //let enhanced_json_line = process_data(&json_line);
                                 println!("{}", serde_json::to_string(&json_line).unwrap());
                             }
