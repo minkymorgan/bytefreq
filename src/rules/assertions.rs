@@ -2,6 +2,7 @@ use regex::Regex;
 use serde_json::json;
 use chrono::{NaiveDate, Utc};
 use geonamescache::mappers::country;
+use std::collections::HashMap;
 
 // this is a library of assertion rules, that are matched to triples arriving (raw, HU, LU)
 
@@ -17,12 +18,31 @@ fn handle_country_name_variations(country_name: &str) -> Option<(String, String)
 }
 
 
+// NEW!
+fn resolve_country_with_memo(raw: &str, memo: &mut HashMap<String, (String, String)>) -> Option<(String, String)> {
+    let cache_key = raw.to_string();
+    if let Some(cached_value) = memo.get(&cache_key) {
+        // If the value is in the cache, use it
+        Some(cached_value.clone())
+    } else {
+        // If the value is not in the cache, perform the lookup and store the result in the cache
+        let result = country_name_to_iso3(raw)
+            .map(|iso3| (iso3.clone(), format!("{}-{}", iso3, raw)))
+            .or_else(|| handle_country_name_variations(raw));
+        if let Some((ref iso3, ref region_code)) = result {
+            memo.insert(cache_key.clone(), (iso3.clone(), region_code.clone()));
+        }
+        result
+    }
+}
+
+// this is the first function that is slow code, that needs memoisation
 fn country_name_to_iso3(value: &str) -> Option<String> {
     let name_to_iso3 = country(|c| (c.name.to_lowercase(), c.iso3));
     name_to_iso3.get(&value.to_lowercase()).map(|s| s.to_string())
 }
 
-fn get_possible_countries(column_name: &str, raw: &str, hu: &str, lu: &str) -> Vec<String> {
+fn get_possible_countries(_column_name: &str, raw: &str, hu: &str, lu: &str) -> Vec<String> {
     let mut possible_countries: Vec<String> = Vec::new();
 
     match hu {
@@ -111,7 +131,7 @@ pub fn poss_longitude(value: &str) -> bool {
     false
 }
 
-pub fn execute_assertions(field_name: &str, raw: &str, lu: &str, hu: &str) -> serde_json::Value {
+pub fn execute_assertions(field_name: &str, raw: &str, lu: &str, hu: &str, memo: &mut HashMap<String, (String, String)>) -> serde_json::Value {
     let mut assertions: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
 
     // Remove double quotes from the input strings
@@ -130,14 +150,13 @@ pub fn execute_assertions(field_name: &str, raw: &str, lu: &str, hu: &str) -> se
         }
     }
 
-//    // Check country name
-//    if field_name.to_lowercase().contains("country") && !lu.chars().any(|c| c.is_numeric()) {
-//        if let Some((iso3, region_code)) = country_name_to_iso3(raw).map(|iso3| (iso3.clone(), format!("{}-{}", iso3, raw)))
-//            .or_else(|| handle_country_name_variations(raw)) {
-//            assertions.insert("std_country_iso3".to_string(), json!(iso3));
-//        assertions.insert("std_region_code".to_string(), json!(region_code));
-//        }
-//    }
+
+    if field_name.to_lowercase().contains("country") && !lu.chars().any(|c| c.is_numeric()) {
+        if let Some((iso3, region_code)) = resolve_country_with_memo(raw, memo) {
+            assertions.insert("std_country_iso3".to_string(), json!(iso3));
+            assertions.insert("std_region_code".to_string(), json!(region_code));
+        }
+    }
 
     if lu == "9" || lu == "9.9" {
         assertions.insert("is_numeric".to_string(), json!(is_numeric(raw)));
