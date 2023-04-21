@@ -2,6 +2,7 @@ use regex::Regex;
 use serde_json::json;
 use chrono::{NaiveDate, Utc};
 use geonamescache::mappers::country;
+use rayon::prelude::*;
 
 // this is a library of assertion rules, that are matched to triples arriving (raw, HU, LU)
 
