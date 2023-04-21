@@ -8,6 +8,7 @@ use unic::ucd::GeneralCategory as Category;
 use unicode_names2;
 use serde_json::json;
 use bytefreq_rs::rules::enhancer::process_data;
+use rayon::prelude::*;
 
 pub fn identity_mask(value: &str) -> String {
     value.to_string()
@@ -168,37 +169,37 @@ fn process_json_value(
     }
 }
 
+// Enhanced for Performance using multithreading via rayon
 // Function to process a tabular line and convert it into an enhanced JSON object
 fn process_tabular_line_as_json(processed_fields: &Vec<(String, String)>) -> serde_json::Value {
-    let mut json_line: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
+    let json_line: std::collections::HashMap<String, serde_json::Value> = processed_fields
+        .par_iter()
+        .map(|(column_name, value)| {
+            let hu_masked_value = mask_value(value, "HU", column_name);
+            let lu_masked_value = mask_value(value, "LU", column_name);
 
-    for (column_name, value) in processed_fields {
+            let data = json!({
+                "raw": value,
+                "LU": lu_masked_value,
+                "HU": hu_masked_value
+            });
 
-        let hu_masked_value = mask_value(value, "HU", column_name);
-        let lu_masked_value = mask_value(value, "LU", column_name);
+            let assertions = process_data(&column_name, &data);
 
-        //let assertions = bytefreq-rs::rules::enhancer::process_data(column_name, value, lu_masked_value, hu_masked_value);
+            let enhanced_value = json!({
+                "raw": value,
+                "HU": hu_masked_value,
+                "LU": lu_masked_value,
+                "Rules": assertions
+            });
 
-        let data = json!({
-            "raw": value,
-            "LU": lu_masked_value,
-            "HU": hu_masked_value
-        });
+            (column_name.clone(), enhanced_value)
+        })
+        .collect::<std::collections::HashMap<String, serde_json::Value>>();
 
-        let assertions = process_data(&column_name, &data);
-
-        let enhanced_value = json!({
-            "raw": value,
-            "HU": hu_masked_value,
-            "LU": lu_masked_value,
-            "Rules": assertions
-        });
-
-        json_line.insert(column_name.clone(), enhanced_value);
-    }
-
-    serde_json::Value::Object(json_line)
+    serde_json::Value::Object(json_line.into_iter().collect())
 }
+
 
 fn process_json_line(
     line: &str,
@@ -450,6 +451,7 @@ fn character_profiling() -> Result<(), std::io::Error> {
     Ok(())
 }
 
+// updated for parallel processing with rayon:
 fn process_json_line_as_json(json_line: &str, grain: &str) -> serde_json::Value {
     let mut json_data: serde_json::Value = serde_json::from_str(json_line).unwrap();
 
@@ -460,16 +462,9 @@ fn process_json_line_as_json(json_line: &str, grain: &str) -> serde_json::Value 
                 for (key, value) in map.iter_mut() {
                     process_json_value(value, grain);
                     if let serde_json::Value::String(s) = value {
-
                         let hu_masked_value = mask_value(s, "HU", key);
                         let lu_masked_value = mask_value(s, "LU", key);
 
-                        // let assertions = process_data(key, &serde_json::Value::String(s.clone()));
-                        // let assertions = process_data(key, &serde_json::Value::String(s.clone())).unwrap_or_else(serde_json::Value::Null);
-                        // let assertions = process_data(key, &serde_json::Value::String(s.clone())).unwrap_or(serde_json::Value::Null);
-                        // let assertions = process_data(key, &serde_json::Value::String(s.clone())).unwrap_or(serde_json::Value::Null);
-                        //let assertions = process_data(key, &serde_json::Value::String(s.clone())).unwrap_or(serde_json::Value::Null);
-                        
                         let temp_data = json!({
                             "raw": s,
                             "HU": hu_masked_value,
@@ -491,9 +486,7 @@ fn process_json_line_as_json(json_line: &str, grain: &str) -> serde_json::Value 
                 }
             }
             serde_json::Value::Array(ref mut values) => {
-                for value in values.iter_mut() {
-                    process_json_value(value, grain);
-                }
+                values.par_iter_mut().for_each(|value| process_json_value(value, grain));
             }
             _ => {}
         }
@@ -502,6 +495,7 @@ fn process_json_line_as_json(json_line: &str, grain: &str) -> serde_json::Value 
     process_json_value(&mut json_data, grain);
     json_data
 }
+
 
 fn main() {
     let matches = App::new("Bytefreq Data Profiler")

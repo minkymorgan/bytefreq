@@ -2,7 +2,6 @@ use regex::Regex;
 use serde_json::json;
 use chrono::{NaiveDate, Utc};
 use geonamescache::mappers::country;
-use rayon::prelude::*;
 
 // this is a library of assertion rules, that are matched to triples arriving (raw, HU, LU)
 
@@ -131,14 +130,14 @@ pub fn execute_assertions(field_name: &str, raw: &str, lu: &str, hu: &str) -> se
         }
     }
 
-    // Check country name
-    if field_name.to_lowercase().contains("country") && !lu.chars().any(|c| c.is_numeric()) {
-        if let Some((iso3, region_code)) = country_name_to_iso3(raw).map(|iso3| (iso3.clone(), format!("{}-{}", iso3, raw)))
-            .or_else(|| handle_country_name_variations(raw)) {
-            assertions.insert("std_country_iso3".to_string(), json!(iso3));
-        assertions.insert("std_region_code".to_string(), json!(region_code));
-        }
-    }
+//    // Check country name
+//    if field_name.to_lowercase().contains("country") && !lu.chars().any(|c| c.is_numeric()) {
+//        if let Some((iso3, region_code)) = country_name_to_iso3(raw).map(|iso3| (iso3.clone(), format!("{}-{}", iso3, raw)))
+//            .or_else(|| handle_country_name_variations(raw)) {
+//            assertions.insert("std_country_iso3".to_string(), json!(iso3));
+//        assertions.insert("std_region_code".to_string(), json!(region_code));
+//        }
+//    }
 
     if lu == "9" || lu == "9.9" {
         assertions.insert("is_numeric".to_string(), json!(is_numeric(raw)));
