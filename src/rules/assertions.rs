@@ -1,8 +1,26 @@
 use regex::Regex;
 use serde_json::json;
 use chrono::{NaiveDate, Utc};
+use geonamescache::mappers::country;
 
 // this is a library of assertion rules, that are matched to triples arriving (raw, HU, LU)
+
+fn handle_country_name_variations(country_name: &str) -> Option<(String, String)> {
+    match country_name.to_lowercase().as_str() {
+        "england" => Some(("GBR".to_string(), "GB-ENG".to_string())),
+        "scotland" => Some(("GBR".to_string(), "GB-SCT".to_string())),
+        "northern ireland" => Some(("GBR".to_string(), "GB-NIR".to_string())),
+        "wales" | "cymru" => Some(("GBR".to_string(), "GB-WLS".to_string())),
+        // Add more variations here if needed
+        _ => None,
+    }
+}
+
+
+fn country_name_to_iso3(value: &str) -> Option<String> {
+    let name_to_iso3 = country(|c| (c.name.to_lowercase(), c.iso3));
+    name_to_iso3.get(&value.to_lowercase()).map(|s| s.to_string())
+}
 
 fn get_possible_countries(column_name: &str, raw: &str, hu: &str, lu: &str) -> Vec<String> {
     let mut possible_countries: Vec<String> = Vec::new();
@@ -112,6 +130,14 @@ pub fn execute_assertions(field_name: &str, raw: &str, lu: &str, hu: &str) -> se
         }
     }
 
+    // Check country name
+    if field_name.to_lowercase().contains("country") && !lu.chars().any(|c| c.is_numeric()) {
+        if let Some((iso3, region_code)) = country_name_to_iso3(raw).map(|iso3| (iso3.clone(), format!("{}-{}", iso3, raw)))
+            .or_else(|| handle_country_name_variations(raw)) {
+            assertions.insert("std_country_iso3".to_string(), json!(iso3));
+        assertions.insert("std_region_code".to_string(), json!(region_code));
+        }
+    }
 
     if lu == "9" || lu == "9.9" {
         assertions.insert("is_numeric".to_string(), json!(is_numeric(raw)));
