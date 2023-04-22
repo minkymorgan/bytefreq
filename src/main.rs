@@ -1,3 +1,5 @@
+#[macro_use]
+extern crate lazy_static;
 use chrono::Local;
 use clap::{App, Arg};
 use rand::prelude::*;
@@ -9,6 +11,17 @@ use unicode_names2;
 use serde_json::json;
 use bytefreq_rs::rules::enhancer::process_data;
 use rayon::prelude::*;
+use std::sync::RwLock;
+
+
+lazy_static! {
+    pub static ref HANDLE_COUNTRY_NAME_CACHE: RwLock<HashMap<String, Option<(String, String)>>> =
+        RwLock::new(HashMap::new());
+    pub static ref COUNTRY_NAME_TO_ISO3_CACHE: RwLock<HashMap<String, Option<String>>> =
+        RwLock::new(HashMap::new());
+}
+
+
 
 pub fn identity_mask(value: &str) -> String {
     value.to_string()

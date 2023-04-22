@@ -16,6 +16,7 @@ unic = "0.9"
 unicode_names2 = "0.6.0"
 regex = "1.5"
 geonamescache = { git = "https://github.com/oyarsa/geonamescache-rs"}
+lazy_static = "1.4.0"
 
 [dependencies.globset]
 version = "0.4"
