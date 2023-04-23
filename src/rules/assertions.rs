@@ -35,11 +35,6 @@ fn country_name_to_iso3(value: &str) -> Option<String> {
     result
 }
 
-//fn country_name_to_iso3(value: &str) -> Option<String> {
-//    let name_to_iso3 = country(|c| (c.name.to_lowercase(), c.iso3));
-//    name_to_iso3.get(&value.to_lowercase()).map(|s| s.to_string())
-//}
-
 fn get_possible_countries(column_name: &str, raw: &str, hu: &str, lu: &str) -> Vec<String> {
     let mut possible_countries: Vec<String> = Vec::new();
 
