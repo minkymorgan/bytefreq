@@ -35,7 +35,7 @@ fn country_name_to_iso3(value: &str) -> Option<String> {
     result
 }
 
-fn get_possible_countries(column_name: &str, raw: &str, hu: &str, lu: &str) -> Vec<String> {
+fn get_possible_countries(_column_name: &str, raw: &str, hu: &str, lu: &str) -> Vec<String> {
     let mut possible_countries: Vec<String> = Vec::new();
 
     match hu {
