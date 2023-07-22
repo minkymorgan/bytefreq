@@ -83,6 +83,15 @@ $ cat testdata/test3.tsv | ./target/release/bytefreq-rs -d "\t" -g "H"
 ### Example Output:
 
 ```
+cat testdata/*geo* | bytefreq-rs -f json -a true -e | jq . | head -100
+
+
+
+
+
+
+
+
 cat testdata/source.geojson* | ./target/release/bytefreq-rs --format "json" -g "LU" |grep -v hash | column -t -s $'\t'
 Data Profiling Report: 20230403 00:55:13
 Examined rows: 190493
@@ -128,8 +137,176 @@ col_00008_properties.postcode             25677     "9"          "730"
 ```
 
 ```
-cat testdata/source.geojson* | ./target/release/bytefreq-rs -f json -r CP -g "LU" |grep -v hash | column -t -s $'\t' 
+cat testdata/BasicCompanyData* | bytefreq-rs -e | jq . | head -100
 
+{
+  "Accounts.AccountCategory": {
+    "HU": "AAAAAAA",
+    "LU": "A",
+    "Rules": {
+      "string_length": 7
+    },
+    "raw": "DORMANT"
+  },
+  "Accounts.AccountRefDay": {
+    "HU": "99",
+    "LU": "9",
+    "Rules": {
+      "is_numeric": true,
+      "string_length": 2
+    },
+    "raw": "30"
+  },
+  "Accounts.AccountRefMonth": {
+    "HU": "9",
+    "LU": "9",
+    "Rules": {
+      "is_numeric": true,
+      "string_length": 1
+    },
+    "raw": "9"
+  },
+  "Accounts.LastMadeUpDate": {
+    "HU": "99_99_9999",
+    "LU": "9_9_9",
+    "Rules": {
+      "std_date": "2019-09-30",
+      "string_length": 10
+    },
+    "raw": "30/09/2019"
+  },
+  "Accounts.NextDueDate": {
+    "HU": "99_99_9999",
+    "LU": "9_9_9",
+    "Rules": {
+      "std_date": "2021-06-30",
+      "string_length": 10
+    },
+    "raw": "30/06/2021"
+  },
+  "CompanyCategory": {
+    "HU": "Aaaaaaa Aaaaaaa Aaaaaaa",
+    "LU": "Aa Aa Aa",
+    "Rules": {
+      "string_length": 23
+    },
+    "raw": "Private Limited Company"
+
+...
+
+
+// for json data, the enhance works with a flatten option. two examples show the difference:
+
+cat testdata/*geo* | bytefreq-rs -f json -e | jq . | head -50
+{
+  "geometry": {
+    "coordinates": [
+      -6.8533376,
+      62.2774559
+    ],
+    "type": {
+      "HU": "Aaaaa",
+      "LU": "Aa",
+      "Rules": {
+        "string_length": 5
+      },
+      "raw": "Point"
+    }
+  },
+  "properties": {
+    "city": {
+      "HU": "Aaaaaaaaaaaaa",
+      "LU": "Aa",
+      "Rules": {
+        "string_length": 13
+      },
+      "raw": "Oyndarfjørður"
+    },
+    "district": {
+      "HU": "",
+      "LU": "_",
+      "Rules": {
+        "string_length": 0
+      },
+      "raw": ""
+    },
+    "hash": {
+      "HU": "99a999a9a9999a99",
+      "LU": "9a9a9a9a9",
+      "Rules": {
+        "string_length": 16
+      },
+      "raw": "79f233a8e3912d05"
+    },
+    "id": {
+      "HU": "",
+      "LU": "_",
+      "Rules": {
+        "string_length": 0
+      },
+      "raw": ""
+    },
+    "number": {
+      "HU": "9",
+
+// and the second example is:
+
+{
+  "geometry.coordinates.0": -6.8533376,
+  "geometry.coordinates.1": 62.2774559,
+  "geometry.type.HU": "Aaaaa",
+  "geometry.type.LU": "Aa",
+  "geometry.type.Rules.string_length": 5,
+  "geometry.type.raw": "Point",
+  "properties.city.HU": "Aaaaaaaaaaaaa",
+  "properties.city.LU": "Aa",
+  "properties.city.Rules.string_length": 13,
+  "properties.city.raw": "Oyndarfjørður",
+  "properties.district.HU": "",
+  "properties.district.LU": "_",
+  "properties.district.Rules.string_length": 0,
+  "properties.district.raw": "",
+  "properties.hash.HU": "99a999a9a9999a99",
+  "properties.hash.LU": "9a9a9a9a9",
+  "properties.hash.Rules.string_length": 16,
+  "properties.hash.raw": "79f233a8e3912d05",
+  "properties.id.HU": "",
+  "properties.id.LU": "_",
+  "properties.id.Rules.string_length": 0,
+  "properties.id.raw": "",
+  "properties.number.HU": "9",
+  "properties.number.LU": "9",
+  "properties.number.Rules.is_numeric": true,
+  "properties.number.Rules.string_length": 1,
+  "properties.number.raw": "4",
+  "properties.postcode.HU": "999",
+  "properties.postcode.LU": "9",
+  "properties.postcode.Rules.is_numeric": true,
+  "properties.postcode.Rules.string_length": 3,
+  "properties.postcode.raw": "690",
+  "properties.region.HU": "",
+  "properties.region.LU": "_",
+  "properties.region.Rules.string_length": 0,
+  "properties.region.raw": "",
+  "properties.street.HU": "Aaaaaaaaaaaa",
+  "properties.street.LU": "Aa",
+  "properties.street.Rules.string_length": 12,
+  "properties.street.raw": "Sýnarbrekkan",
+  "properties.unit.HU": "",
+  "properties.unit.LU": "_",
+  "properties.unit.Rules.string_length": 0,
+  "properties.unit.raw": "",
+  "type.HU": "Aaaaaaa",
+  "type.LU": "Aa",
+  "type.Rules.string_length": 7,
+  "type.raw": "Feature"
+}
+
+
+# ByteFreq(uency) reports using the CP option. This is the only solution I know of that does this properly
+
+
+cat testdata/*geo* | bytefreq-rs -f json -r CP 
 
 char                           count     description      name
 --------                       --------  ---------------  ---------------
