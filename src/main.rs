@@ -12,7 +12,7 @@ use serde_json::json;
 use bytefreq_rs::rules::enhancer::process_data;
 use rayon::prelude::*;
 use std::sync::RwLock;
-
+//use flatten_json_object::Flattener;
 
 lazy_static! {
     pub static ref HANDLE_COUNTRY_NAME_CACHE: RwLock<HashMap<String, Option<(String, String)>>> =
@@ -567,7 +567,7 @@ fn main() {
                 .value_name("PATHDEPTH")
                 .help("Sets the depth for JSON paths (applicable for JSON data only).")
                 .takes_value(true)
-                .default_value("2"),
+                .default_value("9"),
         )
         .arg(
             Arg::new("remove_array_numbers")
@@ -576,7 +576,7 @@ fn main() {
                 .value_name("REMOVE_ARRAY_NUMBERS")
                 .help("Remove array numbers when set to true")
                 .takes_value(true)
-                .default_value("false"),
+                .default_value("false")
         )
     .arg(
         Arg::new("enhanced_output")
@@ -584,13 +584,22 @@ fn main() {
         .long("enhanced-output")
         .value_name("ENHANCED_OUTPUT")
         .help("Output the processed tabular data in JSON format when set to true.")
-        .takes_value(true)
-        .default_value("false"),
+        .takes_value(false)
+    )
+    .arg(
+         Arg::new("flat_enhanced")
+         .short('E')
+         .long("flat-enhanced")
+         .value_name("FLAT_ENHANCE")
+         .help("Formats the enhanced output in a flattened format")
+         .takes_value(false)
     )
         .get_matches();
 
     let report = matches.value_of("report").unwrap();
-    let enhanced_output = matches.value_of("enhanced_output").unwrap() != "false";
+    let enhanced_output = matches.is_present("enhanced_output");
+    let flat_enhanced = matches.is_present("flat_enhanced");
+    //let remove_array_numbers = matches.is_present("remove_array_numbers");
 
     if report == "CP" {
         //character_profiling();
@@ -620,10 +629,17 @@ fn main() {
         for line in stdin.lock().lines().filter_map(Result::ok) {
             if !line.is_empty() {
                 if format == "json" {
-                    if enhanced_output {
+                    if enhanced_output == true && flat_enhanced == false {
                         let json_line = process_json_line_as_json(&line, grain);
                         //let enhanced_json_line = process_data(&json_line);
-                        println!("{}", serde_json::to_string(&json_line).unwrap());
+                        println!("{}", serde_json::to_string(&json_line).unwrap());    // delivers very nested ehanced data
+                    } else if enhanced_output == true && flat_enhanced == true {
+                        let json_line = process_json_line_as_json(&line, grain);
+                        match flatten_json_object::Flattener::new().flatten(&json_line) {
+                            Ok(flattened) => println!("{}",                           // significantly unnests data, line by line 
+                            serde_json::to_string(&flattened).unwrap()),
+                            Err(e) => eprintln!("Failed to flatten JSON: {}", e), 
+                            } 
                     } else {
                         process_json_line(
                             &line,
