@@ -1,4 +1,4 @@
-# bytefreq-rs 
+# bytefreq (new Rust version!) 
 ### Mask Based Data Profiling, for Data Quality Assessment
 **Bytefreq-rs** implements a mask based data profiling technique that is one of the most efficient methods for doing data quality assessment on new unknown datasets you receive.
 
