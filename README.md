@@ -42,10 +42,11 @@ $ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 Then continue to get, build, and install the tool:
 
 ```
+$ git clone git@github.com:minkymorgan/bytefreq.git
+$ cd bytefreq
 $ cargo clean
 $ cargo build --release
 $ cargo install --path .
-$ bytefreq --help
 $ bytefreq --help
 Bytefreq Data Profiler 1.0
 Andrew Morgan <minkymorgan@gmail.com>
