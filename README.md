@@ -112,32 +112,29 @@ brew install jq
 
 1. Process a tabular data file with default options (Unicode grain, '|' delimiter):
 ```
-$ cat testdata/test1.pip | ./target/release/bytefreq-rs
+$ cat testdata/test1.pip | ./target/release/bytefreq
 ```
 
 2. Process a JSON data file with low grain masking:
 ```
-$ cat testdata/test2.json | ./target/release/bytefreq-rs -f "json" -g "L"
+$ cat testdata/test2.json | ./target/release/bytefreq -f "json" -g "L"
 ```
 
 3. Process a tabular data file with a custom delimiter and high grain masking:
 ```
-$ cat testdata/test3.tsv | ./target/release/bytefreq-rs -d "\t" -g "H"
+$ cat testdata/test3.tsv | ./target/release/bytefreq -d "\t" -g "H"
 ```
 
 ### Example Output:
 
 ```
-cat testdata/*geo* | bytefreq-rs -f json -a true -e | jq . | head -100
+cat testdata/*geo* | bytefreq -f json -a true -e | jq . | head -100
 
 
 
 
-
-
-
-
-cat testdata/source.geojson* | ./target/release/bytefreq-rs --format "json" -g "LU" |grep -v hash | column -t -s $'\t'
+## here's an example with formatted output using the column command:
+cat testdata/source.geojson* | bytefreq --format "json" -g "LU" |grep -v hash | column -t -s $'\t'
 Data Profiling Report: 20230403 00:55:13
 Examined rows: 190493
 column                                    count     pattern      example                         
@@ -182,7 +179,7 @@ col_00008_properties.postcode             25677     "9"          "730"
 ```
 
 ```
-cat testdata/BasicCompanyData* | bytefreq-rs -e | jq . | head -100
+cat testdata/BasicCompanyData* | bytefreq -e | jq . | head -100
 
 {
   "Accounts.AccountCategory": {
@@ -242,7 +239,7 @@ cat testdata/BasicCompanyData* | bytefreq-rs -e | jq . | head -100
 
 // for json data, the enhance works with a flatten option. two examples show the difference:
 
-cat testdata/*geo* | bytefreq-rs -f json -e | jq . | head -50
+cat testdata/*geo* | bytefreq -f json -e | jq . | head -50
 {
   "geometry": {
     "coordinates": [
@@ -351,7 +348,7 @@ cat testdata/*geo* | bytefreq-rs -f json -e | jq . | head -50
 # ByteFreq(uency) reports using the CP option. This is the only solution I know of that does this properly
 
 
-cat testdata/*geo* | bytefreq-rs -f json -r CP 
+cat testdata/*geo* | bytefreq -f json -r CP 
 
 char                           count     description      name
 --------                       --------  ---------------  ---------------
