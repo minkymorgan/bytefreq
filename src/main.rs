@@ -628,11 +628,11 @@ fn main() {
         for line in stdin.lock().lines().filter_map(Result::ok) {
             if !line.is_empty() {
                 if format == "json" {
-                    if enhanced_output == true && flat_enhanced == false {
+                    if enhanced_output == true {
                         let json_line = process_json_line_as_json(&line, grain);
                         //let enhanced_json_line = process_data(&json_line);
                         println!("{}", serde_json::to_string(&json_line).unwrap());    // delivers very nested ehanced data
-                    } else if enhanced_output == true && flat_enhanced == true {
+                    } else if flat_enhanced == true {
                         let json_line = process_json_line_as_json(&line, grain);
                         match flatten_json_object::Flattener::new().flatten(&json_line) {
                             Ok(flattened) => println!("{}",                           // significantly unnests data, line by line 
