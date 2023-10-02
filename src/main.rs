@@ -590,7 +590,7 @@ fn main() {
          Arg::new("flat_enhanced")
          .short('E')
          .long("flat-enhanced")
-         .value_name("FLAT_ENHANCE")
+         .value_name("FLAT_ENHANCED")
          .help("Formats the enhanced output in a flattened format")
          .takes_value(false)
     )
