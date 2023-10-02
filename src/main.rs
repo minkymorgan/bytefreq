@@ -575,8 +575,7 @@ fn main() {
                 .long("remove-array-numbers")
                 .value_name("REMOVE_ARRAY_NUMBERS")
                 .help("Remove array numbers when set to true")
-                .takes_value(true)
-                .default_value("false")
+                .takes_value(false)
         )
     .arg(
         Arg::new("enhanced_output")
@@ -599,7 +598,7 @@ fn main() {
     let report = matches.value_of("report").unwrap();
     let enhanced_output = matches.is_present("enhanced_output");
     let flat_enhanced = matches.is_present("flat_enhanced");
-    //let remove_array_numbers = matches.is_present("remove_array_numbers");
+    let remove_array_numbers = matches.is_present("remove_array_numbers");
 
     if report == "CP" {
         //character_profiling();
@@ -624,7 +623,7 @@ fn main() {
             .unwrap()
             .parse::<usize>()
             .unwrap();
-        let remove_array_numbers = matches.value_of("remove_array_numbers").unwrap() != "false";
+        //let remove_array_numbers = matches.value_of("remove_array_numbers").unwrap() != "false";
 
         for line in stdin.lock().lines().filter_map(Result::ok) {
             if !line.is_empty() {
