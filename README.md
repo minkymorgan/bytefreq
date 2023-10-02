@@ -11,7 +11,7 @@ A "Mask" is the output of a function that generalises a string of data into a pa
 - Produces human readable Frequency counts of the patterns/masks in your data.
 - Reports a true random example of a mask, using Reservoir Sampling. 
 - Handles complex json nesting, including unrolling arrays. 
-- Byte frequency reports supports Unicode, as well as control characts like LF / CR
+- Byte frequency reports supports Unicode, plus the non-printable control characters you need for DQ studies, like LF / CR
 
 I highly suggest you pre-parse complex csv using a decent parser, and pass clean pipe delimited values to this program. Also - this program expects a header for tabular data. (note: If there are ragged columns, this will probably error presently)
 
