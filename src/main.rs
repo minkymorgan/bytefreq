@@ -9,7 +9,7 @@ use std::io::{self, BufRead, Read};
 use unic::ucd::GeneralCategory as Category;
 use unicode_names2;
 use serde_json::json;
-use bytefreq_rs::rules::enhancer::process_data;
+use bytefreq::rules::enhancer::process_data;
 use rayon::prelude::*;
 use std::sync::RwLock;
 //use flatten_json_object::Flattener;

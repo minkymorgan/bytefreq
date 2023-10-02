@@ -1,5 +1,5 @@
 [package]
-name = "bytefreq-rs"
+name = "bytefreq"
 version = "0.2.0"
 authors = ["minkymorgan@gmail.com"]
 edition = "2018"
@@ -31,6 +31,6 @@ version = "1.7"
 version = "2.3"
 
 [[bin]]
-name = "bytefreq-rs"
+name = "bytefreq"
 path = "src/main.rs"
 
