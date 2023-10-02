@@ -2,7 +2,7 @@
 ### Mask Based Data Profiling
 **Bytefreq** implements a mask based data profiling technique that is one of the most efficient methods for doing data quality assessment on new unknown datasets you receive.
 
-A "Mask" is the output of a function that generalises a string of data into a pattern, the mask, which greatly reduces the cardinality of the original values. This cardinality reduction allows you to inspect vast quantities of data quickly in a field or column, helping you to discover outliers and data quality issues in your dataset. Examples of each pattern help to validate what you can expect when you come to use the data in a use case. **bytefreq-rs** is a refactor of the original bytefreq tool found here: https://github.com/minkymorgan/bytefreq
+A "Mask" is the output of a function that generalises a string of data into a pattern, the mask, which greatly reduces the cardinality of the original values. This cardinality reduction allows you to inspect vast quantities of data quickly in a field or column, helping you to discover outliers and data quality issues in your dataset. Examples of each pattern help to validate what you can expect when you come to use the data in a use case. **bytefreq** is a refactor of the original bytefreq tool found here: https://github.com/minkymorgan/bytefreq
 ### Features:
 - Produces two report formats: Data Profiling, and Byte Frequency reports 
 - Supports both complex nested JSON and Delimited tabular data formats 
@@ -32,54 +32,98 @@ See the LICENSE file for more information.
 ## Usage:
 
 
-To use bytefreq-rs, install rust, clone the repo, and compile the Rust program, and check it delivers the help information.
+To use bytefreq, install rust, clone the repo, and compile the Rust program, and check it delivers the help information.
+
+On my latest read, the installation for rust suggests the following, as found here: https://www.rust-lang.org/tools/install
+```
+$ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+Then continue to get, build, and install the tool:
 
 ```
 $ cargo clean
 $ cargo build --release
-$ ./target/release/bytefreq-rs --help
-
+$ cargo install --path .
+$ bytefreq --help
+$ bytefreq --help
 Bytefreq Data Profiler 1.0
-
 Andrew Morgan <minkymorgan@gmail.com>
 A command-line tool to generate data profiling reports based on various masking strategies.
 
 USAGE:
-    bytefreq-rs [OPTIONS]
+    bytefreq [OPTIONS]
 
 OPTIONS:
-    -d, --delimiter <DELIMITER>    Sets the delimiter used to separate fields in input tabular data.
-                                   Default: '|' (pipe character) [default: |]
-    -f, --format <FORMAT>          Sets the format of the input data:
-                                   'json' - JSON data (each line should contain a JSON object)
-                                   'tabular' - Tabular data (first line should be the header)
-                                   [default: tabular]
-    -g, --grain <GRAIN>            Sets the grain type for masking:
-                                   'H' - High grain (A for uppercase letters, a for lowercase
-                                   letters, 9 for digits)
-                                   'L' - Low grain (repeated pattern characters will be compressed
-                                   to one)
-                                   'U' - Unicode (uses Unicode general categories for masking
-                                   'LU'- Low grain Unicode (repeated pattern classes compressed to
-                                   one
-                                   ) [default: LU]
-    -h, --help                     Print help information
-    -V, --version                  Print version information
+    -a, --remove-array-numbers <REMOVE_ARRAY_NUMBERS>
+            Remove array numbers when set to true [default: false]
+
+    -d, --delimiter <DELIMITER>
+            Sets the delimiter used to separate fields in input tabular data.
+            Default: '|' (pipe character) [default: |]
+
+    -e, --enhanced-output
+            Output the processed tabular data in JSON format when set to true.
+
+    -E, --flat-enhanced
+            Formats the enhanced output in a flattened format
+
+    -f, --format <FORMAT>
+            Sets the format of the input data:
+            'json' - JSON data (each line should contain a JSON object)
+            'tabular' - Tabular data (first line should be the header) [default: tabular]
+
+    -g, --grain <GRAIN>
+            Sets the grain type for masking:
+            'H' - High grain (A for uppercase letters, a for lowercase letters, 9 for digits)
+            'L' - Low grain (repeated pattern characters will be compressed to one)
+            'U' - Unicode (uses Unicode general categories for masking
+            'LU'- Low grain Unicode (repeated pattern classes compressed to one
+            ) [default: LU]
+
+    -h, --help
+            Print help information
+
+    -p, --pathdepth <PATHDEPTH>
+            Sets the depth for JSON paths (applicable for JSON data only). [default: 9]
+
+    -r, --report <REPORT>
+            Sets the type of report to generate:
+            'DQ' - Data Quality (default)
+            'CP' - Character Profiling [default: DQ]
+
+    -V, --version
+            Print version information
 ```
+
+
+
+
 ### Usage Examples:
+Here are some examples to run, using the testdata provided. These should help you to understand the range of options and tools.
+Note you may want to install jq if you haven't, it helps when formatting json outputs: https://github.com/jqlang/jq
+Typically on a mac, you might try: 
+```
+brew install jq
+```
+
+#### Examples
 
 1. Process a tabular data file with default options (Unicode grain, '|' delimiter):
 ```
 $ cat testdata/test1.pip | ./target/release/bytefreq-rs
 ```
+
 2. Process a JSON data file with low grain masking:
 ```
 $ cat testdata/test2.json | ./target/release/bytefreq-rs -f "json" -g "L"
 ```
+
 3. Process a tabular data file with a custom delimiter and high grain masking:
 ```
 $ cat testdata/test3.tsv | ./target/release/bytefreq-rs -d "\t" -g "H"
 ```
+
 ### Example Output:
 
 ```
