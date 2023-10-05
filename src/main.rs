@@ -724,6 +724,17 @@ fn main() {
                                 let json_line = process_tabular_line_as_json(&processed_fields);
                                 //let enhanced_json_line = process_data(&json_line);
                                 println!("{}", serde_json::to_string(&json_line).unwrap());
+                            } else if flat_enhanced {
+                                let processed_fields: Vec<(String, String)> = column_names.iter().map(|column_name| {
+                                    let value = fields[*column_name.1].to_string();
+                                    (column_name.0.clone(), value)
+                                }).collect();
+
+                                let json_line = process_tabular_line_as_json(&processed_fields);
+                                match flatten_json_object::Flattener::new().flatten(&json_line) {
+                                    Ok(flattened) => println!("{}", serde_json::to_string(&flattened).unwrap()),
+                                    Err(e) => eprintln!("Failed to flatten tabular JSON: {}", e),
+                                }
                             }
                         }
                     } //end of else
