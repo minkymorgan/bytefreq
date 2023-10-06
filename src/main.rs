@@ -319,6 +319,7 @@ fn init_control_character_descriptions() -> HashMap<char, &'static str> {
     ref_map.insert('\u{FFFA}', "Undefined Control Character");
     ref_map.insert('\u{FFFB}', "Undefined Control Character");
     ref_map.insert('\u{FFFC}', "Undefined Control Character");
+    ref_map.insert('\u{FFFD}', "Replacement Character - remove with tr -d '\357\277\275' ");
     ref_map.insert('\u{1FFFE}', "Undefined Control Character");
     ref_map.insert('\u{1FFFF}', "Undefined Control Character");
     ref_map.insert('\u{2FFFE}', "Undefined Control Character");
