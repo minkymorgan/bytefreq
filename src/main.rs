@@ -319,7 +319,7 @@ fn init_control_character_descriptions() -> HashMap<char, &'static str> {
     ref_map.insert('\u{FFFA}', "Undefined Control Character");
     ref_map.insert('\u{FFFB}', "Undefined Control Character");
     ref_map.insert('\u{FFFC}', "Undefined Control Character");
-    ref_map.insert('\u{FFFD}', "Replacement Character - remove with tr -d '\357\277\275' ");
+    ref_map.insert('\u{FFFD}', "Underfined Control Character: suggest remove");
     ref_map.insert('\u{1FFFE}', "Undefined Control Character");
     ref_map.insert('\u{1FFFF}', "Undefined Control Character");
     ref_map.insert('\u{2FFFE}', "Undefined Control Character");
@@ -680,7 +680,7 @@ fn main() {
                     let mut local_record_count = record_count.lock().unwrap();
                     let mut local_frequency_maps = frequency_maps.lock().unwrap();
                     let mut local_example_maps = example_maps.lock().unwrap();
-                    let mut local_field_count_map = field_count_map.lock().unwrap();
+                    //let mut local_field_count_map = field_count_map.lock().unwrap();
 
                     if *local_record_count == 0 {
                         let header = line; //+ delimiter + "Err1" + delimiter + "Err2";
