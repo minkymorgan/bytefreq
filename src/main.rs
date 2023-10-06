@@ -93,6 +93,7 @@ fn mask_value(value: &str, grain: &str, field_name: &str) -> String {
         match grain {
             "H" => high_grain_mask(value),
             "L" => low_grain_mask(value),
+            "HU" => value.chars().map(|c| high_grain_unicode_mask(c)).collect(),
             "LU" => low_grain_mask(
                 &value
                     .chars()
