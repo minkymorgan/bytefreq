@@ -443,13 +443,13 @@ fn character_profiling() -> Result<(), std::io::Error> {
     }
 
     println!(
-        "{:<4}\t{:<8}\t{:<8}\t{}\t{}",
+        "{:<6}\t{:<8}\t{:<8}\t{}\t{}",
         //"{:<8}\t{:<8}\t{}\t{}",
         "hex", "char", "count", "description", "name"
         //"char", "count", "description", "name"
     );
     //println!("{:-<8}\t{:-<8}\t{:-<15}\t{:-<15}", "", "", "", "");
-    println!("{:-<4}\t{:-<8}\t{:-<8}\t{:-<15}\t{:-<15}", "", "", "", "", "");
+    println!("{:-<6}\t{:-<8}\t{:-<8}\t{:-<15}\t{:-<15}", "", "", "", "", "");
 
     let mut sorted_chars: Vec<(char, usize)> = frequency_map.into_iter().collect();
     sorted_chars.sort_unstable_by_key(|&(c, _)| c as u32);
@@ -465,7 +465,7 @@ fn character_profiling() -> Result<(), std::io::Error> {
         );
         let hex_repr = format!("{:X}", c as u32);  // Convert char to its hexadecimal representation
         println!(
-            "{:<10}\t{:<8}\t{:<8}\t{}\t{}",
+            "{:-<6}\t{:<10}\t{:<8}\t{:<8}\t{}\t{}",
             //"{:<8}\t{:<8}\t{}\t{}",
             hex_repr,
             c.escape_unicode(),
