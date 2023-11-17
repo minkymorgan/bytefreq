@@ -465,7 +465,7 @@ fn character_profiling() -> Result<(), std::io::Error> {
         );
         let hex_repr = format!("{:X}", c as u32);  // Convert char to its hexadecimal representation
         println!(
-            "{:-<6}\t{:<10}\t{:<8}\t{:<8}\t{}\t{}",
+            "{:-<6}\t{:<10}\t{:<8}\t{:<8}\t{}",
             //"{:<8}\t{:<8}\t{}\t{}",
             hex_repr,
             c.escape_unicode(),
