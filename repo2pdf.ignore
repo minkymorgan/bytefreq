@@ -1,0 +1,4 @@
+{
+  "ignoredFiles": ["BasicCompanyData-2021-02-01-part6_6_100k.pip"],
+  "ignoredExtensions":[".geojson", ".geojson.1", ".csv", ".pip"]
+}
