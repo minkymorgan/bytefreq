@@ -522,6 +522,25 @@ fn process_json_line_as_json(json_line: &str, grain: &str) -> serde_json::Value 
     json_data
 }
 
+fn truncate_string(input: &str, max_length: usize) -> String {
+    let mut result = String::new();
+    for word in input.split_whitespace() {
+        if result.len() + word.len() > max_length - 3 { // account for "..."
+            break;
+        } else {
+            result += " ";
+            result += word;
+        }
+    }
+    if result.len() < input.len() {
+        result += "...";
+    }
+    result
+}
+
+
+
+
 
 fn main() {
 
@@ -829,10 +848,10 @@ fn main() {
                         let empty_string = "".to_string();
                         let example_maps_ref = example_maps.lock().unwrap();
                         let example = example_maps_ref[*idx].get(value).unwrap_or(&empty_string);
-
+                        let truncated_example = truncate_string(&example, 10); // adjust the maximum length as needed
                         println!(
                             "col_{:05}_{}\t{:<8}\t{:<8}\t{:<32}",
-                            idx, name, count, value, example
+                            idx, name, count, value, truncated_example
                         );
                     }
                 }
