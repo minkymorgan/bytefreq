@@ -578,6 +578,16 @@ fn main() {
                 .default_value("|"),
         )
         .arg(
+            Arg::new("maxlen"(
+                .short('l')
+                .long("maxlen")
+                .value_name("MAXLEN")
+                .help("Sets the maximum string size for examples in the DQ reports.\n\
+                   Default: 20 ")
+                .takes_value(true)
+                .default_value(20),/
+        )
+        .arg(
             Arg::new("format")
                 .short('f')
                 .long("format")
@@ -650,7 +660,7 @@ fn main() {
         let grain = matches.value_of("grain").unwrap();
         let delimiter = matches.value_of("delimiter").unwrap();
         let format = matches.value_of("format").unwrap();
-
+        let maxlen =  matches.value_of("maxlen").unwrap();
         // new code to process tabular or json data
         let stdin = io::stdin();
 
@@ -848,7 +858,7 @@ fn main() {
                         let empty_string = "".to_string();
                         let example_maps_ref = example_maps.lock().unwrap();
                         let example = example_maps_ref[*idx].get(value).unwrap_or(&empty_string);
-                        let truncated_example = truncate_string(&example, 10); // adjust the maximum length as needed
+                        let truncated_example = truncate_string(&example, maxlen); // adjust the maximum length as needed
                         println!(
                             "col_{:05}_{}\t{:<8}\t{:<8}\t{:<32}",
                             idx, name, count, value, truncated_example
