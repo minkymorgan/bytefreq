@@ -578,7 +578,7 @@ fn main() {
                 .default_value("|"),
         )
         .arg(
-            Arg::new("maxlen"(
+            Arg::new("maxlen")
                 .short('l')
                 .long("maxlen")
                 .value_name("MAXLEN")
