@@ -583,9 +583,9 @@ fn main() {
                 .long("maxlen")
                 .value_name("MAXLEN")
                 .help("Sets the maximum string size for examples in the DQ reports.\n\
-                   Default: 20 ")
+                   Default: '20' ")
                 .takes_value(true)
-                .default_value(20),/
+                .default_value(20),
         )
         .arg(
             Arg::new("format")
