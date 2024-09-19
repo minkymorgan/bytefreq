@@ -660,7 +660,7 @@ fn main() {
         let grain = matches.value_of("grain").unwrap();
         let delimiter = matches.value_of("delimiter").unwrap();
         let format = matches.value_of("format").unwrap();
-        let maxlen =  matches.value_of("maxlen").unwrap();
+        let maxlen = matches.value_of("maxlen").unwrap().parse::<usize>().unwrap();
         // new code to process tabular or json data
         let stdin = io::stdin();
 
