@@ -1,6 +1,6 @@
 # CharFreq - for extended ascii encoded files.
 # Author: Andrew Morgan
-# License: GPLv3
+# License: MIT No Attribution License
 # run using this command on a nix command line:
 #     od -cb testdata.tab | gawk -f charfreq.awk | sort -n
 
