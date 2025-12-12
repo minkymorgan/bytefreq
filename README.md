@@ -4,16 +4,17 @@
 
 A "Mask" is the output of a function that generalises a string of data into a pattern, the mask, which greatly reduces the cardinality of the original values. This cardinality reduction allows you to inspect vast quantities of data quickly in a field or column, helping you to discover outliers and data quality issues in your dataset. Examples of each pattern help to validate what you can expect when you come to use the data in a use case. **bytefreq** is a refactor of the original bytefreq tool found here: https://github.com/minkymorgan/bytefreq
 ### Features:
-- Produces two report formats: Data Profiling, and Byte Frequency reports 
-- Supports both complex nested JSON and Delimited tabular data formats 
+- Produces two report formats: Data Profiling, and Byte Frequency reports
+- Supports both complex nested JSON and delimited tabular data formats (including CSV)
+- **Proper CSV parsing** using industry-standard parser - handles quoted fields, embedded commas, and escape sequences
+- Native Excel file support (.xlsx, .xls, .xlsb, .ods) with optional feature flag
 - Offers modern masks: "HU: HighGrain Unicode", and "LU: LowGrain Unicode"
-- Supports well known ASCII "HighGrain" and "LowGrain" masks 
-- Produces human readable Frequency counts of the patterns/masks in your data.
-- Reports a true random example of a mask, using Reservoir Sampling. 
-- Handles complex json nesting, including unrolling arrays. 
-- Byte frequency reports supports Unicode, plus the non-printable control characters you need for DQ studies, like LF / CR
-
-I highly suggest you pre-parse complex csv using a decent parser, and pass clean pipe delimited values to this program. Also - this program expects a header for tabular data. (note: If there are ragged columns, this will probably error presently)
+- Supports well known ASCII "HighGrain" and "LowGrain" masks
+- Produces human readable frequency counts of the patterns/masks in your data
+- Reports a true random example of a mask, using Reservoir Sampling
+- Handles complex JSON nesting, including unrolling arrays
+- Byte frequency reports support Unicode, plus the non-printable control characters you need for DQ studies, like LF / CR
+- Configurable header row selection for files with metadata or multi-line headers
 
 ### Author:
 **Andrew J Morgan**
@@ -124,6 +125,31 @@ $ cat testdata/test2.json | ./target/release/bytefreq -f "json" -g "L"
 ```
 $ cat testdata/test3.tsv | ./target/release/bytefreq -d "\t" -g "H"
 ```
+
+4. Process a CSV file (proper CSV parsing handles quoted fields with embedded commas):
+```
+$ cat yourfile.csv | ./target/release/bytefreq -d ","
+```
+
+### Processing CSV Files
+
+**Bytefreq uses proper CSV parsing** for all delimited data, which correctly handles:
+- Quoted fields containing the delimiter (e.g., `"Smith, John"` won't be split)
+- Escaped quotes within quoted fields
+- Multi-line quoted fields (though each complete record should be on one line)
+
+This means you can process Excel-exported CSV files directly without pre-processing:
+
+```bash
+# Process a comma-delimited CSV file
+cat yourfile.csv | ./target/release/bytefreq -d ","
+
+# The tool automatically handles fields like:
+# "Last Name, First Name","Address, including city","Department"
+# Which will be correctly parsed as 3 fields, not 5
+```
+
+**Note:** The CSV parser follows RFC 4180 standards. If you encounter issues with non-standard CSV formats, you may need to use external tools like `csvkit` to normalize the data first.
 
 ### Processing Microsoft Excel Files
 

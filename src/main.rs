@@ -13,6 +13,7 @@ use serde_json::json;
 use bytefreq::rules::enhancer::process_data;
 use bytefreq::excel::ExcelReader;
 use rayon::prelude::*;
+use csv::ReaderBuilder;
 
 use std::sync::{Arc, Mutex};
 use std::sync::RwLock;
@@ -539,6 +540,26 @@ fn truncate_string(input: &str, max_length: usize) -> String {
     result
 }
 
+/// Parse a CSV line using proper CSV quoting rules
+fn parse_csv_line(line: &str, delimiter: u8) -> Vec<String> {
+    let mut reader = ReaderBuilder::new()
+        .delimiter(delimiter)
+        .has_headers(false)
+        .from_reader(line.as_bytes());
+
+    if let Some(result) = reader.records().next() {
+        match result {
+            Ok(record) => record.iter().map(|s| s.to_string()).collect(),
+            Err(_) => {
+                // Fallback to naive splitting if CSV parsing fails
+                line.split(delimiter as char).map(|s| s.to_string()).collect()
+            }
+        }
+    } else {
+        vec![]
+    }
+}
+
 
 
 
@@ -691,7 +712,8 @@ fn main() {
         }
     } else {
         let grain = matches.value_of("grain").unwrap();
-        let delimiter = matches.value_of("delimiter").unwrap();
+        let delimiter_str = matches.value_of("delimiter").unwrap();
+        let delimiter = delimiter_str.as_bytes()[0]; // Convert first character to u8
         let format = matches.value_of("format").unwrap();
         let maxlen = matches.value_of("maxlen").unwrap().parse::<usize>().unwrap();
         // new code to process tabular or json data
@@ -737,9 +759,9 @@ fn main() {
                     .expect("Failed to read Excel sheet by index")
             };
 
-            // Convert rows to pipe-delimited strings
+            // Convert rows to delimited strings
             rows.into_iter()
-                .map(|row| row.join(delimiter))
+                .map(|row| row.join(&(delimiter as char).to_string()))
                 .collect()
         } else {
             stdin.lock().lines().filter_map(Result::ok).collect()
@@ -753,8 +775,9 @@ fn main() {
                 let mut local_frequency_maps = frequency_maps.lock().unwrap();
                 let mut local_example_maps = example_maps.lock().unwrap();
 
-                for (idx, name) in header_line
-                    .split(delimiter)
+                let headers = parse_csv_line(header_line, delimiter);
+                for (idx, name) in headers
+                    .iter()
                     .map(|s| s.trim().replace(" ", "_"))
                     .enumerate()
                 {
@@ -807,7 +830,7 @@ fn main() {
                         let mut local_example_maps = example_maps.lock().unwrap();
                         // Process tabular data
                         if !local_column_names.is_empty() {
-                            let fields = line.split(delimiter).collect::<Vec<&str>>();
+                            let fields = parse_csv_line(line, delimiter);
                             let mut processed_fields = Vec::new();
 
                             for (i, field) in fields.iter().enumerate() {
@@ -834,7 +857,7 @@ fn main() {
                                         new_name
                                     }
                                 };
-                                processed_fields.push((column_name, field));
+                                processed_fields.push((column_name, field.as_str()));
                             }
 
                             let field_count = processed_fields.len();
@@ -868,7 +891,7 @@ fn main() {
                             // collect tabular data to enhance, enhance, print
                             if enhanced_output {
                                 let processed_fields: Vec<(String, String)> = local_column_names.iter().map(|column_name| {
-                                    let value = fields[*column_name.1].to_string();
+                                    let value = fields[*column_name.1].clone();
                                     (column_name.0.clone(), value)
                                 }).collect();
 
@@ -877,7 +900,7 @@ fn main() {
                                 println!("{}", serde_json::to_string(&json_line).unwrap());
                             } else if flat_enhanced {
                                 let processed_fields: Vec<(String, String)> = local_column_names.iter().map(|column_name| {
-                                    let value = fields[*column_name.1].to_string();
+                                    let value = fields[*column_name.1].clone();
                                     (column_name.0.clone(), value)
                                 }).collect();
 
