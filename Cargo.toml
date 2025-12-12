@@ -19,7 +19,11 @@ geonamescache = { git = "https://github.com/oyarsa/geonamescache-rs"}
 lazy_static = "1.4.0"
 flatten-json-object = "0.1.0"
 anyhow = "1.0"
-csv = "1.1"
+calamine = { version = "0.26", optional = true }
+
+[features]
+default = []
+excel = ["calamine"]
 
 [dependencies.globset]
 version = "0.4"

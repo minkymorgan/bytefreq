@@ -125,6 +125,51 @@ $ cat testdata/test2.json | ./target/release/bytefreq -f "json" -g "L"
 $ cat testdata/test3.tsv | ./target/release/bytefreq -d "\t" -g "H"
 ```
 
+### Processing Microsoft Excel Files
+
+**Bytefreq now supports native Excel file reading!** Build with the `--features excel` flag to enable support for .xlsx, .xls, .xlsb, and .ods formats.
+
+#### Building with Excel Support:
+
+```bash
+cargo build --release --features excel
+```
+
+#### Using Excel Files:
+
+Process an Excel file directly using the `-f excel` flag:
+
+```bash
+# Process the first sheet (default)
+./target/release/bytefreq -f excel --excel-path yourfile.xlsx
+
+# Process a specific sheet by index (0-based)
+./target/release/bytefreq -f excel --excel-path yourfile.xlsx --sheet 1
+
+# Process a specific sheet by name
+./target/release/bytefreq -f excel --excel-path yourfile.xls --sheet-name "Data Sheet"
+```
+
+**Important Notes:**
+- Excel files often contain multiple sheets - metadata, data, and reference tables
+- Use `--sheet` or `--sheet-name` to select the correct data sheet
+- The first row of the selected sheet will be treated as the header
+- All Excel data is converted internally to pipe-delimited format before processing
+
+#### Alternative: Command-Line Converters
+
+If you cannot build with the Excel feature, you can still process Excel files using external conversion tools:
+
+Using `xlsx2csv` (install via: `pip install xlsx2csv`):
+```bash
+xlsx2csv -d "|" yourfile.xlsx | bytefreq
+```
+
+Using Python pandas:
+```bash
+python -c "import pandas; pandas.read_excel('yourfile.xlsx').to_csv('/dev/stdout', sep='|', index=False)" | bytefreq
+```
+
 ### Example Output:
 
 ```
