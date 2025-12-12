@@ -11,7 +11,9 @@ use unic::ucd::GeneralCategory as Category;
 use unicode_names2;
 use serde_json::json;
 use bytefreq::rules::enhancer::process_data;
+use bytefreq::excel::ExcelReader;
 use rayon::prelude::*;
+use csv::ReaderBuilder;
 
 use std::sync::{Arc, Mutex};
 use std::sync::RwLock;
@@ -522,6 +524,45 @@ fn process_json_line_as_json(json_line: &str, grain: &str) -> serde_json::Value 
     json_data
 }
 
+fn truncate_string(input: &str, max_length: usize) -> String {
+    let mut result = String::new();
+    for word in input.split_whitespace() {
+        if result.len() + word.len() > max_length - 3 { // account for "..."
+            break;
+        } else {
+            result += " ";
+            result += word;
+        }
+    }
+    if result.len() < input.len() {
+        result += "...";
+    }
+    result
+}
+
+/// Parse a CSV line using proper CSV quoting rules
+fn parse_csv_line(line: &str, delimiter: u8) -> Vec<String> {
+    let mut reader = ReaderBuilder::new()
+        .delimiter(delimiter)
+        .has_headers(false)
+        .from_reader(line.as_bytes());
+
+    if let Some(result) = reader.records().next() {
+        match result {
+            Ok(record) => record.iter().map(|s| s.to_string()).collect(),
+            Err(_) => {
+                // Fallback to naive splitting if CSV parsing fails
+                line.split(delimiter as char).map(|s| s.to_string()).collect()
+            }
+        }
+    } else {
+        vec![]
+    }
+}
+
+
+
+
 
 fn main() {
 
@@ -559,15 +600,57 @@ fn main() {
                 .default_value("|"),
         )
         .arg(
+            Arg::new("maxlen")
+                .short('l')
+                .long("maxlen")
+                .value_name("MAXLEN")
+                .help("Sets the maximum string size for examples in the DQ reports.\n\
+                   Default: 20 ")
+                .takes_value(true)
+                .default_value("20"),
+        )
+        .arg(
             Arg::new("format")
                 .short('f')
                 .long("format")
                 .value_name("FORMAT")
                 .help("Sets the format of the input data:\n\
                    'json' - JSON data (each line should contain a JSON object)\n\
-                   'tabular' - Tabular data (first line should be the header)")
+                   'tabular' - Tabular data (first line should be the header)\n\
+                   'excel' - Excel file (.xlsx, .xls, .xlsb, .ods) - requires --excel-path")
                 .takes_value(true)
                 .default_value("tabular"),
+        )
+        .arg(
+            Arg::new("excel_path")
+                .long("excel-path")
+                .value_name("EXCEL_PATH")
+                .help("Path to Excel file (required when format is 'excel')")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::new("sheet")
+                .short('s')
+                .long("sheet")
+                .value_name("SHEET")
+                .help("Sheet index to process (0-based, default: 0)")
+                .takes_value(true)
+                .default_value("0"),
+        )
+        .arg(
+            Arg::new("sheet_name")
+                .long("sheet-name")
+                .value_name("SHEET_NAME")
+                .help("Sheet name to process (overrides --sheet if provided)")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::new("header_row")
+                .long("header-row")
+                .value_name("HEADER_ROW")
+                .help("Row index containing column headers (0-based, default: 0)")
+                .takes_value(true)
+                .default_value("0"),
         )
         .arg(
         Arg::new("report")
@@ -629,9 +712,10 @@ fn main() {
         }
     } else {
         let grain = matches.value_of("grain").unwrap();
-        let delimiter = matches.value_of("delimiter").unwrap();
+        let delimiter_str = matches.value_of("delimiter").unwrap();
+        let delimiter = delimiter_str.as_bytes()[0]; // Convert first character to u8
         let format = matches.value_of("format").unwrap();
-
+        let maxlen = matches.value_of("maxlen").unwrap().parse::<usize>().unwrap();
         // new code to process tabular or json data
         let stdin = io::stdin();
 
@@ -648,12 +732,69 @@ fn main() {
             .parse::<usize>()
             .unwrap();
 
-        let lines: Vec<String> = stdin.lock().lines().filter_map(Result::ok).collect();
+        let header_row: usize = matches
+            .value_of("header_row")
+            .unwrap()
+            .parse()
+            .expect("header-row must be a valid number");
+
+        // Handle Excel files differently
+        let lines: Vec<String> = if format == "excel" {
+            // Excel processing
+            let excel_path = matches.value_of("excel_path")
+                .expect("--excel-path is required when format is 'excel'");
+
+            let sheet_name_opt = matches.value_of("sheet_name");
+            let sheet_index: usize = matches.value_of("sheet")
+                .unwrap()
+                .parse()
+                .expect("Sheet index must be a valid number");
+
+            // Read Excel data
+            let rows = if let Some(sheet_name) = sheet_name_opt {
+                ExcelReader::read_sheet_by_name(excel_path, sheet_name)
+                    .expect("Failed to read Excel sheet by name")
+            } else {
+                ExcelReader::read_sheet_by_index(excel_path, sheet_index)
+                    .expect("Failed to read Excel sheet by index")
+            };
+
+            // Convert rows to delimited strings
+            rows.into_iter()
+                .map(|row| row.join(&(delimiter as char).to_string()))
+                .collect()
+        } else {
+            stdin.lock().lines().filter_map(Result::ok).collect()
+        };
+
+        // For tabular/Excel data, process the header first (sequentially)
+        if format == "tabular" || format == "excel" {
+            if lines.len() > header_row {
+                let header_line = &lines[header_row];
+                let mut local_column_names = column_names.lock().unwrap();
+                let mut local_frequency_maps = frequency_maps.lock().unwrap();
+                let mut local_example_maps = example_maps.lock().unwrap();
+
+                let headers = parse_csv_line(header_line, delimiter);
+                for (idx, name) in headers
+                    .iter()
+                    .map(|s| s.trim().replace(" ", "_"))
+                    .enumerate()
+                {
+                    local_column_names.insert(name.to_string(), idx);
+                    local_frequency_maps.push(HashMap::new());
+                    local_example_maps.push(HashMap::new());
+                }
+            }
+        }
 
         // Now we move the loop into a parallel iterator
-        lines.par_iter().for_each(|line| {
+        lines.par_iter().enumerate().for_each(|(line_idx, line)| {
             if !line.is_empty() {
-                if format == "json" {
+                // Excel and tabular share the same processing logic
+                let actual_format = if format == "excel" { "tabular" } else { format };
+
+                if actual_format == "json" {
                     if enhanced_output == true {
                         let json_line = process_json_line_as_json(&line, grain);
                         //let enhanced_json_line = process_data(&json_line);
@@ -681,36 +822,28 @@ fn main() {
                     }
                 } else {
                     // Tabular processing
-
-                    let mut local_column_names = column_names.lock().unwrap();
-                    let mut local_record_count = record_count.lock().unwrap();
-                    let mut local_frequency_maps = frequency_maps.lock().unwrap();
-                    let mut local_example_maps = example_maps.lock().unwrap();
-                    //let mut local_field_count_map = field_count_map.lock().unwrap();
-
-                    if *local_record_count == 0 {
-                        let header = line; //+ delimiter + "Err1" + delimiter + "Err2";
-                                           // Process header for tabular data
-                        for (idx, name) in header
-                            .split(delimiter)
-                            .map(|s| s.trim().replace(" ", "_"))
-                            .enumerate()
-                        {
-                            local_column_names.insert(name.to_string(), idx);
-                            local_frequency_maps.push(HashMap::new());
-                            local_example_maps.push(HashMap::new());
-                        }
-                    } else {
+                    // Skip lines up to and including the header row, then process data
+                    if line_idx > header_row {
+                        let mut local_column_names = column_names.lock().unwrap();
+                        let mut local_record_count = record_count.lock().unwrap();
+                        let mut local_frequency_maps = frequency_maps.lock().unwrap();
+                        let mut local_example_maps = example_maps.lock().unwrap();
                         // Process tabular data
                         if !local_column_names.is_empty() {
-                            let fields = line.split(delimiter).collect::<Vec<&str>>();
+                            let fields = parse_csv_line(line, delimiter);
                             let mut processed_fields = Vec::new();
 
                             for (i, field) in fields.iter().enumerate() {
                                 let column_name = match local_column_names.iter().find(|(_, &v)| v == i) {
                                     Some((name, _)) => name.clone(),
                                     None => {
-                                        let extra_column_index = i + 1 - local_column_names.len();
+                                        // Handle ragged data - this field has no corresponding column
+                                        let extra_column_index = if i + 1 > local_column_names.len() {
+                                            i + 1 - local_column_names.len()
+                                        } else {
+                                            // This shouldn't happen but handle gracefully
+                                            0
+                                        };
                                         let new_name = format!("RaggedErr{}", extra_column_index);
 
                                         // Update column_names, frequency_maps, and example_maps for the new column
@@ -724,7 +857,7 @@ fn main() {
                                         new_name
                                     }
                                 };
-                                processed_fields.push((column_name, field));
+                                processed_fields.push((column_name, field.as_str()));
                             }
 
                             let field_count = processed_fields.len();
@@ -758,7 +891,7 @@ fn main() {
                             // collect tabular data to enhance, enhance, print
                             if enhanced_output {
                                 let processed_fields: Vec<(String, String)> = local_column_names.iter().map(|column_name| {
-                                    let value = fields[*column_name.1].to_string();
+                                    let value = fields[*column_name.1].clone();
                                     (column_name.0.clone(), value)
                                 }).collect();
 
@@ -767,7 +900,7 @@ fn main() {
                                 println!("{}", serde_json::to_string(&json_line).unwrap());
                             } else if flat_enhanced {
                                 let processed_fields: Vec<(String, String)> = local_column_names.iter().map(|column_name| {
-                                    let value = fields[*column_name.1].to_string();
+                                    let value = fields[*column_name.1].clone();
                                     (column_name.0.clone(), value)
                                 }).collect();
 
@@ -775,11 +908,11 @@ fn main() {
                                 match flatten_json_object::Flattener::new().flatten(&json_line) {
                                     Ok(flattened) => println!("{}", serde_json::to_string(&flattened).unwrap()),
                                     Err(e) => eprintln!("Failed to flatten tabular JSON: {}", e),
-                                }       // 1
-                            }           // 2
-                        }               // 3
-                    }                   // 4
-                    *local_record_count += 1;
+                                }
+                            }
+                        }
+                        *local_record_count += 1;
+                    }
                 }
                 
             }
@@ -829,10 +962,10 @@ fn main() {
                         let empty_string = "".to_string();
                         let example_maps_ref = example_maps.lock().unwrap();
                         let example = example_maps_ref[*idx].get(value).unwrap_or(&empty_string);
-
+                        let truncated_example = truncate_string(&example, maxlen); // adjust the maximum length as needed
                         println!(
                             "col_{:05}_{}\t{:<8}\t{:<8}\t{:<32}",
-                            idx, name, count, value, example
+                            idx, name, count, value, truncated_example
                         );
                     }
                 }

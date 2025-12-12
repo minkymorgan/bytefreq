@@ -3,4 +3,5 @@ extern crate lazy_static;
 
 pub mod rules;
 pub mod cache;
+pub mod excel;
 

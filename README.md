@@ -4,16 +4,17 @@
 
 A "Mask" is the output of a function that generalises a string of data into a pattern, the mask, which greatly reduces the cardinality of the original values. This cardinality reduction allows you to inspect vast quantities of data quickly in a field or column, helping you to discover outliers and data quality issues in your dataset. Examples of each pattern help to validate what you can expect when you come to use the data in a use case. **bytefreq** is a refactor of the original bytefreq tool found here: https://github.com/minkymorgan/bytefreq
 ### Features:
-- Produces two report formats: Data Profiling, and Byte Frequency reports 
-- Supports both complex nested JSON and Delimited tabular data formats 
+- Produces two report formats: Data Profiling, and Byte Frequency reports
+- Supports both complex nested JSON and delimited tabular data formats (including CSV)
+- **Proper CSV parsing** using industry-standard parser - handles quoted fields, embedded commas, and escape sequences
+- Native Excel file support (.xlsx, .xls, .xlsb, .ods) with optional feature flag
 - Offers modern masks: "HU: HighGrain Unicode", and "LU: LowGrain Unicode"
-- Supports well known ASCII "HighGrain" and "LowGrain" masks 
-- Produces human readable Frequency counts of the patterns/masks in your data.
-- Reports a true random example of a mask, using Reservoir Sampling. 
-- Handles complex json nesting, including unrolling arrays. 
-- Byte frequency reports supports Unicode, plus the non-printable control characters you need for DQ studies, like LF / CR
-
-I highly suggest you pre-parse complex csv using a decent parser, and pass clean pipe delimited values to this program. Also - this program expects a header for tabular data. (note: If there are ragged columns, this will probably error presently)
+- Supports well known ASCII "HighGrain" and "LowGrain" masks
+- Produces human readable frequency counts of the patterns/masks in your data
+- Reports a true random example of a mask, using Reservoir Sampling
+- Handles complex JSON nesting, including unrolling arrays
+- Byte frequency reports support Unicode, plus the non-printable control characters you need for DQ studies, like LF / CR
+- Configurable header row selection for files with metadata or multi-line headers
 
 ### Author:
 **Andrew J Morgan**
@@ -123,6 +124,80 @@ $ cat testdata/test2.json | ./target/release/bytefreq -f "json" -g "L"
 3. Process a tabular data file with a custom delimiter and high grain masking:
 ```
 $ cat testdata/test3.tsv | ./target/release/bytefreq -d "\t" -g "H"
+```
+
+4. Process a CSV file (proper CSV parsing handles quoted fields with embedded commas):
+```
+$ cat yourfile.csv | ./target/release/bytefreq -d ","
+```
+
+### Processing CSV Files
+
+**Bytefreq uses proper CSV parsing** for all delimited data, which correctly handles:
+- Quoted fields containing the delimiter (e.g., `"Smith, John"` won't be split)
+- Escaped quotes within quoted fields
+- Multi-line quoted fields (though each complete record should be on one line)
+
+This means you can process Excel-exported CSV files directly without pre-processing:
+
+```bash
+# Process a comma-delimited CSV file
+cat yourfile.csv | ./target/release/bytefreq -d ","
+
+# The tool automatically handles fields like:
+# "Last Name, First Name","Address, including city","Department"
+# Which will be correctly parsed as 3 fields, not 5
+```
+
+**Note:** The CSV parser follows RFC 4180 standards. If you encounter issues with non-standard CSV formats, you may need to use external tools like `csvkit` to normalize the data first.
+
+### Processing Microsoft Excel Files
+
+**Bytefreq now supports native Excel file reading!** Build with the `--features excel` flag to enable support for .xlsx, .xls, .xlsb, and .ods formats.
+
+#### Building with Excel Support:
+
+```bash
+cargo build --release --features excel
+```
+
+#### Using Excel Files:
+
+Process an Excel file directly using the `-f excel` flag:
+
+```bash
+# Process the first sheet (default, header on row 0)
+./target/release/bytefreq -f excel --excel-path yourfile.xlsx
+
+# Process a specific sheet by index (0-based)
+./target/release/bytefreq -f excel --excel-path yourfile.xlsx --sheet 1
+
+# Process a specific sheet by name
+./target/release/bytefreq -f excel --excel-path yourfile.xls --sheet-name "Data Sheet"
+
+# If headers are not on row 0 (e.g., file has metadata/labels first)
+./target/release/bytefreq -f excel --excel-path yourfile.xlsx --sheet-name "Data" --header-row 1
+```
+
+**Important Notes:**
+- Excel files often contain multiple sheets - metadata, data, and reference tables
+- Use `--sheet` or `--sheet-name` to select the correct data sheet
+- By default, row 0 is treated as the header. Use `--header-row N` if headers are on a different row
+- Common scenario: Files with a title/label in row 0 and actual headers in row 1 should use `--header-row 1`
+- All Excel data is converted internally to pipe-delimited format before processing
+
+#### Alternative: Command-Line Converters
+
+If you cannot build with the Excel feature, you can still process Excel files using external conversion tools:
+
+Using `xlsx2csv` (install via: `pip install xlsx2csv`):
+```bash
+xlsx2csv -d "|" yourfile.xlsx | bytefreq
+```
+
+Using Python pandas:
+```bash
+python -c "import pandas; pandas.read_excel('yourfile.xlsx').to_csv('/dev/stdout', sep='|', index=False)" | bytefreq
 ```
 
 ### Example Output:
