@@ -166,7 +166,7 @@ cargo build --release --features excel
 Process an Excel file directly using the `-f excel` flag:
 
 ```bash
-# Process the first sheet (default)
+# Process the first sheet (default, header on row 0)
 ./target/release/bytefreq -f excel --excel-path yourfile.xlsx
 
 # Process a specific sheet by index (0-based)
@@ -174,12 +174,16 @@ Process an Excel file directly using the `-f excel` flag:
 
 # Process a specific sheet by name
 ./target/release/bytefreq -f excel --excel-path yourfile.xls --sheet-name "Data Sheet"
+
+# If headers are not on row 0 (e.g., file has metadata/labels first)
+./target/release/bytefreq -f excel --excel-path yourfile.xlsx --sheet-name "Data" --header-row 1
 ```
 
 **Important Notes:**
 - Excel files often contain multiple sheets - metadata, data, and reference tables
 - Use `--sheet` or `--sheet-name` to select the correct data sheet
-- The first row of the selected sheet will be treated as the header
+- By default, row 0 is treated as the header. Use `--header-row N` if headers are on a different row
+- Common scenario: Files with a title/label in row 0 and actual headers in row 1 should use `--header-row 1`
 - All Excel data is converted internally to pipe-delimited format before processing
 
 #### Alternative: Command-Line Converters
