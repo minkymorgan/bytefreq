@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Bytefreq Data Quality Check</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        h1 {
+            color: #4ec9b0;
+        }
+        .controls {
+            background: #252526;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        button {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #1177bb;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        #report {
+            white-space: pre-wrap;
+            background: #252526;
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid #3e3e42;
+            min-height: 200px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .info {
+            color: #888;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        .delimiter-control {
+            margin: 10px 0;
+        }
+        .delimiter-control label {
+            margin-right: 10px;
+        }
+        .delimiter-control input[type="text"] {
+            width: 50px;
+            padding: 5px;
+            background: #3c3c3c;
+            border: 1px solid #555;
+            color: #d4d4d4;
+        }
+    </style>
+</head>
+<body>
+    <h1>🦀 Bytefreq Data Quality Check</h1>
+
+    <div class="controls">
+        <h2>Upload CSV File for Analysis</h2>
+        <input type="file" id="upload" accept=".csv,.txt">
+
+        <div class="delimiter-control">
+            <label for="delimiter">Delimiter:</label>
+            <input type="text" id="delimiter" value="," maxlength="1" placeholder=",">
+            <span class="info">(single character: comma, pipe, tab, etc.)</span>
+        </div>
+
+        <button id="checkBtn" onclick="checkQuality()">Check Quality</button>
+
+        <div class="info">
+            ✓ All processing happens in your browser - data never leaves your laptop<br>
+            ✓ Privacy-first data quality validation
+        </div>
+    </div>
+
+    <div id="report">Select a CSV file and click "Check Quality" to analyze...</div>
+
+    <script type="module">
+        import init, { profile_csv } from './bytefreq.js';
+
+        // Initialize WASM module
+        let wasmReady = false;
+        try {
+            await init();
+            wasmReady = true;
+            console.log('✓ WASM module loaded successfully');
+        } catch (err) {
+            document.getElementById('report').textContent =
+                'Error loading WASM module:\n' + err.message;
+            console.error('Failed to load WASM:', err);
+        }
+
+        window.checkQuality = async function() {
+            const fileInput = document.getElementById('upload');
+            const delimiterInput = document.getElementById('delimiter');
+            const reportDiv = document.getElementById('report');
+            const checkBtn = document.getElementById('checkBtn');
+
+            if (!wasmReady) {
+                reportDiv.textContent = 'WASM module not loaded. Please refresh the page.';
+                return;
+            }
+
+            const file = fileInput.files[0];
+            if (!file) {
+                reportDiv.textContent = 'Please select a CSV file first.';
+                return;
+            }
+
+            // Get delimiter (default to comma if empty)
+            let delimiter = delimiterInput.value || ',';
+            if (delimiter === '\\t') delimiter = '\t';  // Handle tab
+            if (delimiter.length !== 1) {
+                reportDiv.textContent = 'Delimiter must be a single character.';
+                return;
+            }
+
+            try {
+                checkBtn.disabled = true;
+                reportDiv.textContent = 'Processing ' + file.name + '...';
+
+                const startTime = performance.now();
+                const text = await file.text();
+                const readTime = performance.now() - startTime;
+
+                const profileStart = performance.now();
+                const report = profile_csv(text, delimiter);
+                const profileTime = performance.now() - profileStart;
+
+                const totalTime = performance.now() - startTime;
+
+                reportDiv.textContent = report +
+                    '\n\n' +
+                    '─'.repeat(50) + '\n' +
+                    `Performance:\n` +
+                    `  File read: ${readTime.toFixed(2)}ms\n` +
+                    `  Profile:   ${profileTime.toFixed(2)}ms\n` +
+                    `  Total:     ${totalTime.toFixed(2)}ms\n` +
+                    `  File size: ${(file.size / 1024).toFixed(2)} KB`;
+
+            } catch (err) {
+                reportDiv.textContent = 'Error processing file:\n' + err.message;
+                console.error('Processing error:', err);
+            } finally {
+                checkBtn.disabled = false;
+            }
+        };
+
+        // Enable drag & drop
+        document.body.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+
+        document.body.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById('upload').files = files;
+            }
+        });
+    </script>
+</body>
+</html>

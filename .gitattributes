@@ -1,1 +1,4 @@
 testdata/BasicCompanyData-2021-02-01-part6_6.csv.pip filter=lfs diff=lfs merge=lfs -text
+
+# Use bd merge for beads JSONL files
+.beads/issues.jsonl merge=beads

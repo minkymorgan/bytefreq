@@ -10,6 +10,7 @@ serde_json = "1.0"
 csv = "1.1"
 glob = "0.3"
 rand = "0.8.4"
+getrandom = { version = "0.2", features = ["js"] }
 chrono = { version = "0.4.19", features = ["serde"] }
 clap = "3.0"
 unic = "0.9"
@@ -20,10 +21,13 @@ lazy_static = "1.4.0"
 flatten-json-object = "0.1.0"
 anyhow = "1.0"
 calamine = { version = "0.26", optional = true }
+wasm-bindgen = { version = "0.2", optional = true }
+console_error_panic_hook = { version = "0.1", optional = true }
 
 [features]
 default = []
 excel = ["calamine"]
+wasm = ["wasm-bindgen", "console_error_panic_hook"]
 
 [dependencies.globset]
 version = "0.4"
@@ -34,6 +38,11 @@ version = "1.7"
 
 [dependencies.walkdir]
 version = "2.3"
+
+[lib]
+name = "bytefreq"
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
 
 [[bin]]
 name = "bytefreq"
