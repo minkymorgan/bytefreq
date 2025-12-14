@@ -80,7 +80,14 @@ fn string_length(value: &str) -> i32 {
 
 
 fn parse_date(value: &str) -> Option<NaiveDate> {
-    let formats = ["%d-%m-%Y", "%d/%m/%Y"];
+    let formats = [
+        "%d-%b-%Y",   // 31-Dec-2015
+        "%d-%m-%Y",   // 31-12-2015
+        "%d/%m/%Y",   // 31/12/2015
+        "%Y-%m-%d",   // 2015-12-31 (ISO 8601)
+        "%m/%d/%Y",   // 12/31/2015 (US format)
+        "%Y%m%d",     // 20151231 (compact)
+    ];
 
     for format in &formats {
         if let Ok(parsed_date) = NaiveDate::parse_from_str(value, format) {
@@ -164,8 +171,11 @@ pub fn execute_assertions(field_name: &str, raw: &str, lu: &str, hu: &str) -> se
         assertions.insert("is_uk_postcode".to_string(), json!(is_uk_postcode(raw)));
     }
 
-    if lu == "9_9_9" {
-         assertions.insert("std_date".to_string(), json!(parse_date(raw)));
+    // Check for date patterns - either common LU patterns or field name contains "date"
+    if lu == "9_9_9" || lu == "9-9-9" || lu == "9/9/9" || lu == "9-Aa-9" || field_name.to_lowercase().contains("date") {
+        if let Some(parsed_date) = parse_date(raw) {
+            assertions.insert("std_date".to_string(), json!(parsed_date.format("%Y-%m-%d").to_string()));
+        }
     }
 
     // check DOB
