@@ -222,6 +222,76 @@ fn process_tabular_line_as_json(processed_fields: &Vec<(String, String)>) -> ser
 }
 
 
+/// Extract array from paginated JSON and convert to NDJSON
+/// Returns Ok(ndjson_string) if extraction successful, Err(original_input) otherwise
+fn extract_json_array(input: &str, field_name: Option<&str>) -> Result<String, String> {
+    // Try to parse as single JSON object
+    let parsed: Value = serde_json::from_str(input).map_err(|_| input.to_string())?;
+
+    match parsed {
+        // Top-level array: convert directly to NDJSON
+        Value::Array(arr) => {
+            if arr.is_empty() {
+                return Err(input.to_string());
+            }
+            let ndjson = arr.iter()
+                .map(|item| serde_json::to_string(item).unwrap_or_default())
+                .collect::<Vec<_>>()
+                .join("\n");
+            eprintln!("✓ Extracted {} records from top-level array", arr.len());
+            Ok(ndjson)
+        },
+        // Object with array field: extract the array
+        Value::Object(obj) => {
+            let array_field = if let Some(field) = field_name {
+                if field == "auto" {
+                    // Auto-detect: prioritize common field names
+                    let common_fields = ["items", "data", "results", "records", "rows"];
+                    let array_fields: Vec<&String> = obj.keys()
+                        .filter(|k| obj.get(*k).map(|v| v.is_array()).unwrap_or(false))
+                        .collect();
+
+                    if array_fields.is_empty() {
+                        eprintln!("✗ No array fields found in JSON object");
+                        return Err(input.to_string());
+                    }
+
+                    // Find common field name or use first array field
+                    array_fields.iter()
+                        .find(|f| common_fields.contains(&f.as_str()))
+                        .or_else(|| array_fields.first())
+                        .map(|s| s.as_str())
+                } else {
+                    Some(field)
+                }
+            } else {
+                return Err(input.to_string());
+            };
+
+            if let Some(field) = array_field {
+                if let Some(Value::Array(arr)) = obj.get(field) {
+                    if arr.is_empty() {
+                        eprintln!("✗ Array field '{}' is empty", field);
+                        return Err(input.to_string());
+                    }
+                    let ndjson = arr.iter()
+                        .map(|item| serde_json::to_string(item).unwrap_or_default())
+                        .collect::<Vec<_>>()
+                        .join("\n");
+                    eprintln!("✓ Extracted {} records from field '{}'", arr.len(), field);
+                    Ok(ndjson)
+                } else {
+                    eprintln!("✗ Field '{}' is not an array or doesn't exist", field);
+                    Err(input.to_string())
+                }
+            } else {
+                Err(input.to_string())
+            }
+        },
+        _ => Err(input.to_string())
+    }
+}
+
 fn process_json_line(
     line: &str,
     frequency_maps: &mut Vec<HashMap<String, usize>>,
@@ -489,6 +559,8 @@ fn process_json_line_as_json(json_line: &str, grain: &str) -> serde_json::Value 
                 let mut new_entries: Vec<(String, serde_json::Value)> = Vec::new();
                 for (key, value) in map.iter_mut() {
                     process_json_value(value, grain);
+
+                    // Handle String values
                     if let serde_json::Value::String(s) = value {
                         let hu_masked_value = mask_value(s, "HU", key);
                         let lu_masked_value = mask_value(s, "LU", key);
@@ -502,6 +574,27 @@ fn process_json_line_as_json(json_line: &str, grain: &str) -> serde_json::Value 
 
                         let enhanced_value = json!({
                             "raw": s,
+                            "HU": hu_masked_value,
+                            "LU": lu_masked_value,
+                            "Rules": assertions
+                        });
+                        new_entries.push((key.clone(), enhanced_value));
+                    }
+                    // Handle Number values (integers and floats)
+                    else if let serde_json::Value::Number(n) = value {
+                        let s = n.to_string();
+                        let hu_masked_value = mask_value(&s, "HU", key);
+                        let lu_masked_value = mask_value(&s, "LU", key);
+
+                        let temp_data = json!({
+                            "raw": s,
+                            "HU": hu_masked_value,
+                            "LU": lu_masked_value
+                        });
+                        let assertions = process_data(key, &temp_data).unwrap_or(serde_json::Value::Null);
+
+                        let enhanced_value = json!({
+                            "raw": n, // Keep original number type
                             "HU": hu_masked_value,
                             "LU": lu_masked_value,
                             "Rules": assertions
@@ -680,6 +773,15 @@ fn main() {
                 .help("Remove array numbers when set to true")
                 .takes_value(false)
         )
+        .arg(
+            Arg::new("extract_array")
+                .long("extract-array")
+                .value_name("FIELD")
+                .help("Extract array from paginated JSON and convert to NDJSON.\n\
+                       Specify field name (e.g., 'items', 'data', 'results') or 'auto' for automatic detection.\n\
+                       Converts {items: [...]} or [...] to newline-delimited JSON.")
+                .takes_value(true)
+        )
     .arg(
         Arg::new("enhanced_output")
         .short('e')
@@ -738,8 +840,10 @@ fn main() {
             .parse()
             .expect("header-row must be a valid number");
 
+        let extract_array_field = matches.value_of("extract_array");
+
         // Handle Excel files differently
-        let lines: Vec<String> = if format == "excel" {
+        let mut lines: Vec<String> = if format == "excel" {
             // Excel processing
             let excel_path = matches.value_of("excel_path")
                 .expect("--excel-path is required when format is 'excel'");
@@ -766,6 +870,24 @@ fn main() {
         } else {
             stdin.lock().lines().filter_map(Result::ok).collect()
         };
+
+        // Handle array extraction for JSON format
+        if format == "json" && extract_array_field.is_some() {
+            // Join all lines into single string (for paginated JSON detection)
+            let input = lines.join("\n");
+
+            // Attempt array extraction
+            match extract_json_array(&input, extract_array_field) {
+                Ok(ndjson) => {
+                    // Replace lines with extracted NDJSON
+                    lines = ndjson.lines().map(|s| s.to_string()).collect();
+                },
+                Err(_) => {
+                    eprintln!("✗ Array extraction failed, processing as NDJSON");
+                    // Keep original lines
+                }
+            }
+        }
 
         // For tabular/Excel data, process the header first (sequentially)
         if format == "tabular" || format == "excel" {

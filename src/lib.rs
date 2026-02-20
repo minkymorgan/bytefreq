@@ -1,5 +1,11 @@
 // Library module for WASM and other uses
 
+pub mod cache;
+pub mod rules;
+
+#[cfg(feature = "excel")]
+pub mod excel;
+
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 

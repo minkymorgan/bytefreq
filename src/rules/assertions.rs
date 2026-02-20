@@ -108,6 +108,54 @@ fn is_sensible_dob(value: &str) -> bool {
     false
 }
 
+/// Detect if a field name suggests it contains a timestamp
+fn is_timestamp_field(field_name: &str) -> bool {
+    let field_lower = field_name.to_lowercase();
+    let timestamp_keywords = [
+        "time", "timestamp", "epoch", "created", "updated",
+        "modified", "date", "ts", "datetime", "when"
+    ];
+
+    timestamp_keywords.iter().any(|keyword| field_lower.contains(keyword))
+}
+
+/// Parse Unix timestamp and convert to standardized date/datetime strings
+/// Returns (timestamp_type, std_date, std_datetime) if valid
+fn parse_unix_timestamp(value: &str, lu: &str) -> Option<(String, String, String)> {
+    // Must be all numeric (LU pattern is all 9s)
+    if !lu.chars().all(|c| c == '9') {
+        return None;
+    }
+
+    // Parse the value as i64
+    let timestamp = value.parse::<i64>().ok()?;
+
+    // Determine timestamp type by length and convert to seconds
+    let (timestamp_seconds, timestamp_type) = match value.len() {
+        10 => (timestamp, "seconds"),      // Unix timestamp in seconds
+        13 => (timestamp / 1000, "milliseconds"),  // Milliseconds (JavaScript Date.now())
+        16 => (timestamp / 1_000_000, "microseconds"), // Microseconds
+        19 => (timestamp / 1_000_000_000, "nanoseconds"), // Nanoseconds
+        _ => return None, // Not a recognized timestamp format
+    };
+
+    // Range validation: must be between 2000-01-01 and 2100-01-01 (UTC)
+    // 2000-01-01 00:00:00 UTC = 946684800
+    // 2100-01-01 00:00:00 UTC = 4102444800
+    if timestamp_seconds < 946684800 || timestamp_seconds > 4102444800 {
+        return None;
+    }
+
+    // Convert to NaiveDateTime
+    let datetime = chrono::DateTime::from_timestamp(timestamp_seconds, 0)?;
+
+    // Format outputs
+    let std_date = datetime.format("%Y-%m-%d").to_string();
+    let std_datetime = datetime.format("%Y-%m-%d %H:%M:%S UTC").to_string();
+
+    Some((timestamp_type.to_string(), std_date, std_datetime))
+}
+
 pub fn is_uk_postcode(value: &str) -> bool {
     let re = Regex::new(r"^(([A-Z][A-HJ-Y]?\d[A-Z\d]?|ASCN|STHL|TDCU|BBND|[BFS]IQQ|PCRN|TKCA) ?\d[A-Z]{2}|BFPO ?\d{1,4}|(KY\d|MSR|VG|AI)[ -]?\d{4}|[A-Z]{2} ?\d{2}|GE ?CX|GIR ?0A{2}|SAN ?TA1)$").unwrap();
     re.is_match(value)
@@ -183,7 +231,19 @@ pub fn execute_assertions(field_name: &str, raw: &str, lu: &str, hu: &str) -> se
         assertions.insert("is_sensible_dob".to_string(), json!(is_sensible_dob(raw)));
     }
 
-    
+    // Check for Unix timestamps
+    // Detection heuristics:
+    // 1. Field name contains timestamp-related keywords (time, timestamp, epoch, etc.)
+    // 2. Value is all numeric (LU pattern is all 9s)
+    // 3. Length is 10 (seconds), 13 (milliseconds), 16 (microseconds), or 19 (nanoseconds)
+    // 4. Value is within valid range (2000-2100)
+    if is_timestamp_field(field_name) {
+        if let Some((timestamp_type, std_date, std_datetime)) = parse_unix_timestamp(raw, lu) {
+            assertions.insert("is_unix_timestamp".to_string(), json!(timestamp_type));
+            assertions.insert("std_date".to_string(), json!(std_date));
+            assertions.insert("std_datetime".to_string(), json!(std_datetime));
+        }
+    }
 
     serde_json::Value::Object(assertions)
 }
