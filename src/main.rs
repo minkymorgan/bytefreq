@@ -12,6 +12,7 @@ use unicode_names2;
 use serde_json::json;
 use bytefreq::rules::enhancer::process_data;
 use bytefreq::excel::ExcelReader;
+use bytefreq::parquet::ParquetReader;
 use rayon::prelude::*;
 use csv::ReaderBuilder;
 
@@ -710,7 +711,8 @@ fn main() {
                 .help("Sets the format of the input data:\n\
                    'json' - JSON data (each line should contain a JSON object)\n\
                    'tabular' - Tabular data (first line should be the header)\n\
-                   'excel' - Excel file (.xlsx, .xls, .xlsb, .ods) - requires --excel-path")
+                   'excel' - Excel file (.xlsx, .xls, .xlsb, .ods) - requires --excel-path\n\
+                   'parquet' - Parquet file (.parquet) - requires --parquet-path")
                 .takes_value(true)
                 .default_value("tabular"),
         )
@@ -719,6 +721,13 @@ fn main() {
                 .long("excel-path")
                 .value_name("EXCEL_PATH")
                 .help("Path to Excel file (required when format is 'excel')")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::new("parquet_path")
+                .long("parquet-path")
+                .value_name("PARQUET_PATH")
+                .help("Path to Parquet file (required when format is 'parquet')")
                 .takes_value(true),
         )
         .arg(
@@ -867,6 +876,11 @@ fn main() {
             rows.into_iter()
                 .map(|row| row.join(&(delimiter as char).to_string()))
                 .collect()
+        } else if format == "parquet" {
+            let parquet_path = matches.value_of("parquet_path")
+                .expect("--parquet-path is required when format is 'parquet'");
+            ParquetReader::read_as_json_lines(parquet_path)
+                .expect("Failed to read Parquet file")
         } else {
             stdin.lock().lines().filter_map(Result::ok).collect()
         };
@@ -914,7 +928,11 @@ fn main() {
         lines.par_iter().enumerate().for_each(|(line_idx, line)| {
             if !line.is_empty() {
                 // Excel and tabular share the same processing logic
-                let actual_format = if format == "excel" { "tabular" } else { format };
+                let actual_format = match format {
+                    "excel" => "tabular",
+                    "parquet" => "json",
+                    _ => format,
+                };
 
                 if actual_format == "json" {
                     if enhanced_output == true {

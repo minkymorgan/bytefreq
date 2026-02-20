@@ -6,6 +6,9 @@ pub mod rules;
 #[cfg(feature = "excel")]
 pub mod excel;
 
+#[cfg(feature = "parquet")]
+pub mod parquet;
+
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 

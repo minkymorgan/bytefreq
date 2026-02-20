@@ -8,6 +8,7 @@ A "Mask" is the output of a function that generalises a string of data into a pa
 - Supports both complex nested JSON and delimited tabular data formats (including CSV)
 - **Proper CSV parsing** using industry-standard parser - handles quoted fields, embedded commas, and escape sequences
 - Native Excel file support (.xlsx, .xls, .xlsb, .ods) with optional feature flag
+- Native Apache Parquet file support with nested struct and array handling via optional feature flag
 - Offers modern masks: "HU: HighGrain Unicode", and "LU: LowGrain Unicode"
 - Supports well known ASCII "HighGrain" and "LowGrain" masks
 - Produces human readable frequency counts of the patterns/masks in your data
@@ -73,7 +74,9 @@ OPTIONS:
     -f, --format <FORMAT>
             Sets the format of the input data:
             'json' - JSON data (each line should contain a JSON object)
-            'tabular' - Tabular data (first line should be the header) [default: tabular]
+            'tabular' - Tabular data (first line should be the header)
+            'excel' - Excel file (.xlsx, .xls, .xlsb, .ods) - requires --excel-path
+            'parquet' - Parquet file (.parquet) - requires --parquet-path [default: tabular]
 
     -g, --grain <GRAIN>
             Sets the grain type for masking:
@@ -199,6 +202,58 @@ Using Python pandas:
 ```bash
 python -c "import pandas; pandas.read_excel('yourfile.xlsx').to_csv('/dev/stdout', sep='|', index=False)" | bytefreq
 ```
+
+### Processing Apache Parquet Files
+
+**Bytefreq supports native Parquet file reading!** Build with the `--features parquet` flag to enable support for .parquet files. Parquet data is processed through the JSON pipeline, which means nested structs and arrays are handled natively with dot-notation paths.
+
+#### Building with Parquet Support:
+
+```bash
+cargo build --release --features parquet
+
+# Or with both Excel and Parquet support:
+cargo build --release --features excel,parquet
+```
+
+#### Using Parquet Files:
+
+```bash
+# Profile a Parquet file
+./target/release/bytefreq -f parquet --parquet-path yourfile.parquet
+
+# With low-grain Unicode masking
+./target/release/bytefreq -f parquet --parquet-path yourfile.parquet -g LU
+
+# Enhanced JSON output with data quality rules
+./target/release/bytefreq -f parquet --parquet-path yourfile.parquet -e
+```
+
+#### Nested Data Handling:
+
+Parquet files with nested struct columns produce dot-notation paths, just like JSON:
+
+```
+column                          	count   	pattern 	example
+--------------------------------	--------	--------	--------------------------------
+col_00000_id                    	3       	9       	 2
+col_00001_user.address.city     	2       	"A"     	 "NYC"
+col_00001_user.address.city     	1       	"Aa"    	 "Chicago"
+col_00002_user.address.zip      	3       	"9"     	 "10001"
+col_00003_user.name             	3       	"Aa"    	 "Charlie"
+```
+
+Parquet list/array columns produce indexed paths (use `-a` to collapse indices):
+
+```bash
+# With array indices: tags[0], tags[1], scores[0], scores[1]
+./target/release/bytefreq -f parquet --parquet-path data.parquet
+
+# Collapsed: tags[], scores[]
+./target/release/bytefreq -f parquet --parquet-path data.parquet -a
+```
+
+**Supported Parquet types:** Int8/16/32/64, UInt8/16/32/64, Float32/64, Utf8, Boolean, Null, Struct (nested objects), List/LargeList (arrays), Timestamp (ISO8601), Date32/64, LargeUtf8.
 
 ### Example Output:
 

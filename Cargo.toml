@@ -21,12 +21,15 @@ lazy_static = "1.4.0"
 flatten-json-object = "0.1.0"
 anyhow = "1.0"
 calamine = { version = "0.26", optional = true }
+parquet = { version = "53", default-features = false, features = ["arrow", "snap", "zstd", "lz4"], optional = true }
+arrow = { version = "53", default-features = false, optional = true }
 wasm-bindgen = { version = "0.2", optional = true }
 console_error_panic_hook = { version = "0.1", optional = true }
 
 [features]
 default = []
 excel = ["calamine"]
+parquet = ["dep:parquet", "dep:arrow"]
 wasm = ["wasm-bindgen", "console_error_panic_hook"]
 
 [dependencies.globset]
