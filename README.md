@@ -17,10 +17,16 @@ A "Mask" is the output of a function that generalises a string of data into a pa
 - Byte frequency reports support Unicode, plus the non-printable control characters you need for DQ studies, like LF / CR
 - Configurable header row selection for files with metadata or multi-line headers
 
+### 📖 Learn More
+
+- **[Data Quality on Read](https://minkymorgan.github.io/DataQualityOnRead/)** — A free book explaining the mask-based profiling methodology behind bytefreq, including character-class translation, grain scripts, population analysis, the flat enhanced format, and assertion rules. Available as [PDF](https://minkymorgan.github.io/DataQualityOnRead/DataQualityOnRead.pdf), [EPUB](https://minkymorgan.github.io/DataQualityOnRead/DataQualityOnRead.epub), and [MOBI](https://minkymorgan.github.io/DataQualityOnRead/DataQualityOnRead.mobi). Licensed CC BY 4.0.
+
+- **[DataRadar](https://dataradar.co.uk)** — A browser-based data quality profiling tool that uses the same mask-based technique. Runs entirely client-side (your data never leaves your browser). Use it to configure and understand bytefreq's masking options interactively, or as a standalone profiler for quick assessments. Supports 35+ languages.
+
+- **[Mastering Spark for Data Science](https://www.amazon.co.uk/Mastering-Spark-Science-Andrew-Morgan/dp/1785882147)** — The original book (Packt, 2017) where mask-based profiling was first described (Chapter 4).
+
 ### Author:
 **Andrew J Morgan**
-
-This library implements a mask based data profiler technique is described in our book found here https://www.amazon.co.uk/Mastering-Spark-Science-Andrew-Morgan/dp/1785882147 and subsequently improved upon.
 
 Questions can be directed to me at:
 minkymorgan at gmail dot com
