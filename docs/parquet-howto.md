@@ -166,6 +166,16 @@ Parquet files are converted internally to JSON lines before processing. This mea
 | Boolean | Boolean |
 | Null | null |
 | Struct | Nested JSON object |
+
+### Note on timestamp handling
+
+Parquet timestamps are converted to ISO8601 strings (e.g., `2024-01-15T10:30:00Z`) with full range support — any valid Unix epoch timestamp will be converted correctly.
+
+However, when using enhanced output (`-e`), the **Rules/assertions engine** applies a separate Unix timestamp detection heuristic on numeric fields. This heuristic range-validates to **2000-01-01 through 2100-01-01** to avoid false positives on arbitrary integers. This means:
+
+- Parquet timestamp columns (typed as Timestamp) are always converted correctly regardless of date range
+- Numeric fields that happen to contain Unix epochs outside 2000-2100 will not be auto-detected as timestamps by the Rules engine
+- Historical dates stored as typed Parquet Timestamps are unaffected — the range limit only applies to the heuristic detection of untyped numeric fields
 | List, LargeList | JSON array |
 | Timestamp (all units) | ISO8601 string |
 | Date32, Date64 | Date string (YYYY-MM-DD) |
